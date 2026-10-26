@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <style>
+    :root { --bg:#f6f4ee; --card:#fff; --ink:#222; --sub:#6b6b6b; --accent:#2f8f5b; --wait:#d08a1e; --line:#e3e0d8; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+      font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
+    .wrap { max-width:480px; margin:0 auto; padding:20px 16px 40px; }
+    h1 { font-size:22px; margin:0 0 4px; }
+    h2 { font-size:18px; margin:24px 0 10px; }
+    .date { color:var(--sub); margin-bottom:16px; }
+    .points { display:flex; gap:10px; margin-bottom:18px; }
+    .pt { flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; text-align:center; }
+    .pt b { display:block; font-size:24px; color:var(--accent); }
+    .pt span { font-size:13px; color:var(--sub); }
+    .m { display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:var(--card);
+      border:2px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; font:inherit; color:inherit; }
+    .m.pending { border-color:var(--wait); background:#fbf3e4; }
+    .m.approved { border-color:var(--accent); background:#eaf6ef; }
+    .box { flex:none; width:36px; height:36px; border-radius:10px; border:2px solid var(--line);
+      display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; }
+    .m.pending .box { background:var(--wait); border-color:var(--wait); }
+    .m.approved .box { background:var(--accent); border-color:var(--accent); }
+    .t { font-size:18px; font-weight:600; }
+    .d { font-size:14px; color:var(--sub); margin-top:4px; }
+    .tag { font-size:13px; font-weight:600; margin-top:6px; }
+    .pending .tag { color:var(--wait); }
+    .approved .tag { color:var(--accent); }
+    .p { margin-left:auto; flex:none; font-size:14px; color:var(--accent); font-weight:600; }
+    .pick { display:block; width:100%; padding:22px; margin-bottom:12px; font:inherit; font-size:20px;
+      background:var(--card); border:2px solid var(--line); border-radius:16px; }
+    .rest { background:var(--card); border-radius:16px; padding:24px; text-align:center; color:var(--sub); }
+    .msg { text-align:center; color:var(--sub); padding:30px 0; }
+    .row { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line);
+      border-radius:12px; padding:12px; margin-bottom:8px; }
+    .row .info { flex:1; }
+    .row .info small { display:block; color:var(--sub); }
+    .btn { font:inherit; font-size:14px; padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:#fff; }
+    .btn.ok { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .done-mark { color:var(--accent); font-weight:600; font-size:14px; }
+    .wait-mark { color:var(--sub); font-size:14px; }
+    .row.pending { border-color:var(--wait); background:#fbf3e4; }
+    .row.approved { border-color:var(--accent); background:#eaf6ef; }
+    .erow { display:flex; align-items:center; gap:6px; padding:8px 0; border-top:1px solid var(--line); margin-top:6px; }
+    .erow .info { flex:1; font-size:15px; }
+    .erow .info small { display:block; color:var(--sub); font-size:13px; }
+    .btn.add { width:100%; margin-top:8px; border-style:dashed; color:var(--sub); }
+    .lbl { display:block; font-size:13px; color:var(--sub); margin:10px 0 4px; }
+    .inp { width:100%; font:inherit; font-size:16px; padding:10px; border-radius:10px; border:1px solid var(--line); background:#fff; }
+    .daypick { display:flex; flex-wrap:wrap; gap:10px; font-size:16px; }
+    .cheer { background:#eaf6ef; border:2px solid var(--accent); border-radius:16px; padding:16px; margin-bottom:16px; font-size:16px; line-height:1.6; }
+    .cheer-t { font-size:20px; font-weight:700; color:var(--accent); margin-bottom:6px; }
+    .cheer b { color:var(--accent); }
+    .cheer-s { margin-top:6px; font-weight:600; }
+    h2 .sub { font-size:14px; font-weight:400; color:var(--sub); }
+    .tabs { display:flex; gap:6px; margin-bottom:16px; }
+    .tab { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--sub); }
+    .tab.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+    .day { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
+    .day.today { border:2px solid var(--accent); }
+    .day b { font-size:17px; }
+    .day .note { color:var(--sub); font-size:13px; margin-left:6px; }
+    .day ul, .guide ul, .guide ol { margin:6px 0 0; padding-left:20px; }
+    .day li, .guide li { margin:3px 0; }
+    .guide { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+    .guide h3 { margin:0 0 4px; font-size:17px; }
+    .guide p { margin:4px 0; color:var(--sub); font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app"><div class="msg">불러오는 중…</div></div>
+  <script>
+    var KID = '<?= kid ?>';
+    var PARENT_KEY = '<?= parentKey ?>';
+    var PARENT_MODE = '<?= parentMode ?>';
+
+    // 깃허브 페이지에서 열면 (구글 밖) 웹앱을 주소로 불러요. 아이 구글 계정이 만 13세 미만이어도 열리게
+    // 쿠키 없이(credentials: omit) 부르는 게 중요해요.
+    var API_URL = 'https://script.google.com/macros/s/AKfycbwuSrzkEBAv1Bnr74_DulKxS5ylLN3Fbe78PHnMBbjxef680qhcidPUZewQSylVHoD5pw/exec';
+    var STANDALONE = !(window.google && google.script);
+    if (STANDALONE) {
+      var q = new URLSearchParams(location.search);
+      KID = /^(son|daughter)$/.test(q.get('kid') || '') ? q.get('kid') : '';
+      PARENT_MODE = q.get('mode') === 'parent' ? 'yes' : '';
+      PARENT_KEY = '';
+      var vp = document.createElement('meta');
+      vp.name = 'viewport'; vp.content = 'width=device-width, initial-scale=1, maximum-scale=1';
+      document.head.appendChild(vp);
+      document.title = '오늘의 미션';
+      window.google = { script: { get run() { return runner(); } } };
+    }
+    function runner() {
+      var ok = function () {}, bad = function () {};
+      var r = {
+        withSuccessHandler: function (f) { ok = f; return r; },
+        withFailureHandler: function (f) { bad = f; return r; },
+      };
+      ['getToday', 'toggleMission', 'getParentView', 'parentAction',
+       'getMissionConfig', 'addMission', 'updateMission', 'deleteMission'].forEach(function (fn) {
+        r[fn] = function () {
+          var args = Array.prototype.slice.call(arguments);
+          var url = API_URL + '?api=call&fn=' + fn + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&t=' + Date.now();
+          fetch(url, { credentials: 'omit' })
+            .then(function (res) { return res.json(); })
+            .then(function (o) { if (o.ok) ok(o.data); else bad(new Error(o.error)); })
+            .catch(function () { bad(new Error('인터넷 연결을 확인해 주세요')); });
+        };
+      });
+      return r;
+    }
+    var app = document.getElementById('app');
+    var busy = false;
+    var VIEW = 'today';
+    var CHEER = null; // 이번에 열었을 때 받은 축하 소식 (다시 열기 전까지 유지)
+    var LAST = null;
+    var DAYS = ['일','월','화','수','목','금','토'];
+
+    var GUIDE = [
+      { t: '매일 같은 4단계', p: '어떤 과목이든 이 순서로 해요.', items: [
+        '복습 10분: 이번 주 배운 부분 교과서를 다시 읽고 중요한 말에 밑줄',
+        '한 장 요약 15분: 책을 덮고 기억나는 걸 공책 한 장에 쓰기 → 책과 비교해 빠진 것 채우기',
+        '문제 풀기 15분: 평가문제집에서 그 범위 문제 10개',
+        '오답 정리 10분: 틀린 문제만 오답 노트에 옮기고, 왜 틀렸는지 한 줄 쓰기'] },
+      { t: '국어 (화·금)', p: '읽고 근거 찾는 연습이 핵심이에요.', items: [
+        '본문을 소리 내어 한 번 읽고, 모르는 낱말에 표시해 뜻 찾기',
+        '단원 첫 쪽 학습 목표 확인하기: 시험 문제는 여기서 나와요',
+        '시는 말하는 이·표현법, 소설은 인물·사건·배경·갈등, 설명문은 문단마다 중심 문장 찾기',
+        '요약은 문단마다 한 줄씩',
+        '문제를 틀리면 정답의 근거가 되는 문장을 본문에서 찾아 밑줄 긋기'] },
+      { t: '과학 (수·토)', p: '외우기보다 그림으로 이해해요.', items: [
+        '교과서 그림·도표를 공책에 직접 따라 그리고 설명 달기',
+        '핵심 용어를 내 말로 설명해 보기 (엄마나 동생에게 설명해도 좋아요)',
+        '실험은 목적 → 과정 → 결과 → 결론 4칸 표로 정리',
+        '한 장 요약은 마인드맵으로'] },
+      { t: '사회 (월)', p: '용어와 흐름을 잡아요.', items: [
+        '단원 목차를 빈 종이에 안 보고 써보기 (빈 종이 테스트)',
+        '용어 카드 만들기: 앞면 용어, 뒷면 뜻',
+        '지리 단원은 사회과부도에서 위치를 꼭 찾아보기',
+        '그래프·지도 자료 문제는 제목과 단위부터 읽기'] },
+      { t: '영어 (목)', p: '단어는 매일, 본문과 문법은 목요일에.', items: [
+        '본문 듣기 → 소리 내어 3번 읽기 → 한 문장씩 해석',
+        '해석을 보고 영어 문장으로 다시 써보기',
+        '단원 문법은 예문 2개를 통째로 외우기',
+        '학원 가는 날이라 30분: 본문 읽기와 문법 정리까지만'] },
+    ];
+
+    function tabs(isDaughter) {
+      var list = [['today','오늘'],['week','요일별 미션']];
+      if (isDaughter) list.push(['study','공부법']);
+      return '<div class="tabs">' + list.map(function (x) {
+        return '<button class="tab' + (VIEW === x[0] ? ' on' : '') + '" onclick="go(\'' + x[0] + '\')">' + x[1] + '</button>';
+      }).join('') + '</div>';
+    }
+    function go(v) { VIEW = v; if (LAST) renderKid(LAST); }
+
+    function weekHtml(data) {
+      var todayName = DAYS[new Date().getDay()];
+      var html = '';
+      data.week.forEach(function (d) {
+        html += '<div class="day' + (d.day === todayName ? ' today' : '') + '"><b>' + d.day + '요일</b>' +
+          (d.note ? '<span class="note">' + esc(d.note) + '</span>' : '');
+        html += d.missions.length
+          ? '<ul>' + d.missions.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ul>'
+          : '<div class="d">쉬는 날</div>';
+        html += '</div>';
+      });
+      return html;
+    }
+
+    function studyHtml() {
+      return GUIDE.map(function (g, i) {
+        var tag = i === 0 ? 'ol' : 'ul';
+        return '<div class="guide"><h3>' + g.t + '</h3><p>' + g.p + '</p><' + tag + '>' +
+          g.items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</' + tag + '></div>';
+      }).join('');
+    }
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    function fail(err) { busy = false; app.innerHTML = '<div class="msg">문제가 생겼어요. 다시 열어주세요.<br>' + esc(err.message || err) + '</div>'; }
+
+    // ----- 아이 화면 -----
+    function pickScreen() {
+      app.innerHTML = '<h1>누구예요?</h1><div class="date">이름을 눌러주세요</div>' +
+        '<button class="pick" onclick="choose(\'son\')">우재</button>' +
+        '<button class="pick" onclick="choose(\'daughter\')">소율</button>';
+    }
+    function choose(k) { KID = k; loadKid(); }
+
+    function renderKid(data) {
+      LAST = data;
+      var head = '<h1>' + esc(data.title) + '</h1><div class="date">' + esc(data.date) + '</div>' + tabs(KID === 'daughter');
+      if (VIEW === 'week') { app.innerHTML = head + weekHtml(data); return; }
+      if (VIEW === 'study') { app.innerHTML = head + studyHtml(); return; }
+      var waiting = data.missions.filter(function (m) { return m.state === 'pending'; }).length;
+      var html = head +
+        '<div class="points"><div class="pt"><b>' + data.todayPoints + '</b><span>오늘 받은 포인트</span></div>' +
+        '<div class="pt"><b>' + data.monthPoints + '</b><span>이번 달 (최대 ' + data.cap + ')</span></div></div>';
+      if (data.celebrate && data.celebrate.length) CHEER = (CHEER || []).concat(data.celebrate);
+      if (CHEER) {
+        var sum = CHEER.reduce(function (a, c) { return a + (c.points || 0); }, 0);
+        html += '<div class="cheer"><div class="cheer-t">🎉 엄마가 확인했어요!</div>' +
+          CHEER.map(function (c) { return '<div>' + esc(c.title) + ' <b>+' + c.points + '</b></div>'; }).join('') +
+          '<div class="cheer-s">모두 +' + sum + '점. 잘했어요!</div></div>';
+      }
+      if (waiting) html += '<div class="date">엄마 확인을 기다리는 미션 ' + waiting + '개. 확인되면 포인트가 들어와요.</div>';
+      if (!data.missions.length) html += '<div class="rest">오늘은 쉬는 날이에요. 푹 쉬어요!</div>';
+      data.missions.forEach(function (m) {
+        var tag = m.state === 'pending' ? '엄마 확인 기다리는 중' : m.state === 'approved' ? '엄마 확인 완료!' : '';
+        html += '<button class="m ' + m.state + '" onclick="toggle(\'' + m.id + '\',\'' + m.state + '\')">' +
+          '<div class="box">' + (m.state !== 'none' ? '✓' : '') + '</div>' +
+          '<div><div class="t">' + esc(m.title) + '</div><div class="d">' + esc(m.detail) + '</div>' +
+          (tag ? '<div class="tag">' + tag + '</div>' : '') + '</div>' +
+          '<div class="p">+' + m.points + '</div></button>';
+      });
+      app.innerHTML = html;
+    }
+
+    function loadKid() {
+      if (!KID) return pickScreen();
+      google.script.run.withSuccessHandler(renderKid).withFailureHandler(fail).getToday(KID);
+    }
+
+    function toggle(id, state) {
+      if (busy || state === 'approved') return;
+      busy = true;
+      google.script.run.withSuccessHandler(function (d) { busy = false; renderKid(d); })
+        .withFailureHandler(fail).toggleMission(KID, id);
+    }
+
+    // ----- 엄마 화면 -----
+    function parentRow(kid, it, showDate) {
+      var args = "'" + kid + "','" + it.date + "','" + it.mission + "'";
+      var btns;
+      if (it.state === 'approved') {
+        btns = '<span class="done-mark">확인 완료</span>' +
+          '<button class="btn" onclick="act(' + args + ',\'unapprove\')">확인 취소</button>';
+      } else if (it.state === 'pending') {
+        btns = '<button class="btn" onclick="act(' + args + ',\'reject\')">취소</button>' +
+          '<button class="btn ok" onclick="act(' + args + ',\'approve\')">확인</button>';
+      } else {
+        btns = '<span class="wait-mark">아직 안 함</span>';
+      }
+      return '<div class="row ' + it.state + '"><div class="info">' + esc(it.title) +
+        (showDate ? '<small>' + esc(it.date) + '</small>' : '') + '</div>' + btns + '</div>';
+    }
+
+    var PVIEW = 'check', EKID = 'son', CFG = null, EDIT = null;
+
+    function parentTabs() {
+      return '<div class="tabs">' + [['check','미션 확인'],['edit','미션 수정']].map(function (x) {
+        return '<button class="tab' + (PVIEW === x[0] ? ' on' : '') + '" onclick="pgo(\'' + x[0] + '\')">' + x[1] + '</button>';
+      }).join('') + '</div>';
+    }
+    function pgo(v) { PVIEW = v; EDIT = null; if (v === 'edit') loadConfig(); else loadParent(); }
+
+    function renderParent(data) {
+      var html = '<h1>엄마 확인</h1><div class="date">' + esc(data.date) + ' · 확인한 미션만 포인트로 들어가요</div>' + parentTabs();
+      data.kids.forEach(function (k) {
+        html += '<h2>' + esc(k.name) + ' <span class="sub">오늘 ' + k.todayPoints + '점 · 이번 달 ' + k.monthPoints + '점</span></h2>';
+        if (!k.today.length) html += '<div class="rest">오늘은 쉬는 날이에요</div>';
+        k.today.forEach(function (it) { html += parentRow(k.kid, it, false); });
+        if (k.past.length) {
+          html += '<div class="date" style="margin-top:10px">지난 미션 중 확인 안 한 것</div>';
+          k.past.forEach(function (it) { html += parentRow(k.kid, it, true); });
+        }
+      });
+      app.innerHTML = html;
+    }
+
+    function keyScreen(msg) {
+      app.innerHTML = '<h1>엄마 확인</h1><div class="date">' + (msg || '비밀번호를 입력해 주세요') + '</div>' +
+        '<input id="pw" type="password" style="width:100%;font-size:18px;padding:14px;border-radius:12px;border:1px solid var(--line);margin-bottom:12px">' +
+        '<button class="pick" onclick="tryKey()">들어가기</button>';
+    }
+    function tryKey() {
+      PARENT_KEY = document.getElementById('pw').value.trim();
+      loadParent();
+    }
+    function loadParent() {
+      if (!PARENT_KEY) { try { PARENT_KEY = localStorage.getItem('parentKey') || ''; } catch (e) {} }
+      if (!PARENT_KEY) return keyScreen();
+      google.script.run.withSuccessHandler(function (d) {
+        try { localStorage.setItem('parentKey', PARENT_KEY); } catch (e) {}
+        renderParent(d);
+      }).withFailureHandler(function () {
+        try { localStorage.removeItem('parentKey'); } catch (e) {}
+        PARENT_KEY = '';
+        keyScreen('비밀번호가 맞지 않아요. 다시 입력해 주세요');
+      }).getParentView(PARENT_KEY);
+    }
+
+    function act(kid, date, mission, action) {
+      if (busy) return;
+      if (action === 'reject' && !confirm('아이의 체크를 지울까요?')) return;
+      if (action === 'unapprove' && !confirm('확인을 취소할까요? 포인트에서 빠져요.')) return;
+      busy = true;
+      google.script.run.withSuccessHandler(function (d) { busy = false; renderParent(d); })
+        .withFailureHandler(fail).parentAction(PARENT_KEY, kid, date, mission, action);
+    }
+
+
+    // ----- 엄마: 미션 수정 -----
+    function loadConfig() {
+      google.script.run.withSuccessHandler(renderConfig).withFailureHandler(fail).getMissionConfig(PARENT_KEY);
+    }
+
+    function kindLabel(k) { return k === '기본' ? '' : (k === '보너스' ? '보너스' : '완료보너스'); }
+
+    function formHtml(kidCfg) {
+      var m = { title: '', detail: '', points: 20, kind: '기본' };
+      if (EDIT.mode === 'edit') {
+        kidCfg.days.forEach(function (d) { if (d.dow === EDIT.dow) d.missions.forEach(function (x) { if (x.id === EDIT.id) m = x; }); });
+      }
+      var html = '<div class="guide"><h3>' + (EDIT.mode === 'add' ? '미션 추가' : DAYS_FULL[EDIT.dow] + ' 미션 고치기') + '</h3>' +
+        '<label class="lbl">미션 이름</label><input id="f-title" class="inp" value="' + esc(m.title) + '">' +
+        '<label class="lbl">설명 (아이에게 보이는 안내)</label><input id="f-detail" class="inp" value="' + esc(m.detail) + '">' +
+        '<label class="lbl">포인트</label><input id="f-points" class="inp" type="number" min="0" value="' + m.points + '">' +
+        '<label class="lbl">종류</label><select id="f-kind" class="inp">' + CFG.kinds.map(function (k) {
+          return '<option' + (k === m.kind ? ' selected' : '') + '>' + k + '</option>';
+        }).join('') + '</select>' +
+        '<p>기본: 꼭 할 미션 · 보너스: 하면 더 받는 선택 미션 · 완료보너스: 기본 미션을 다 한 날만 포인트</p>';
+      if (EDIT.mode === 'add') {
+        html += '<label class="lbl">요일 (여러 개 고를 수 있어요)</label><div class="daypick">';
+        for (var d = 1; d <= 7; d++) {
+          html += '<label><input type="checkbox" class="f-day" value="' + d + '"' + (d === EDIT.dow ? ' checked' : '') + '> ' + DAYS_FULL[d].slice(0, 1) + '</label>';
+        }
+        html += '</div>';
+      }
+      html += '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn" style="flex:1" onclick="EDIT=null;renderConfig(CFG)">닫기</button>' +
+        '<button class="btn ok" style="flex:2" onclick="saveForm()">저장</button></div></div>';
+      return html;
+    }
+
+    function renderConfig(cfg) {
+      busy = false;
+      CFG = cfg;
+      var kidCfg = cfg.kids.filter(function (k) { return k.kid === EKID; })[0];
+      var html = '<h1>엄마 확인</h1><div class="date">요일별 미션을 고치면 바로 아이 화면에 반영돼요</div>' + parentTabs();
+      html += '<div class="tabs">' + cfg.kids.map(function (k) {
+        return '<button class="tab' + (EKID === k.kid ? ' on' : '') + '" onclick="EKID=\'' + k.kid + '\';EDIT=null;renderConfig(CFG)">' + esc(k.name) + '</button>';
+      }).join('') + '</div>';
+      if (EDIT) html += formHtml(kidCfg);
+      kidCfg.days.forEach(function (d) {
+        html += '<div class="day"><b>' + d.day + '요일</b>';
+        if (!d.missions.length) html += '<div class="d">미션 없음</div>';
+        d.missions.forEach(function (m) {
+          var args = d.dow + ",'" + m.id + "'";
+          html += '<div class="erow"><div class="info">' + esc(m.title) +
+            '<small>' + m.points + '점' + (kindLabel(m.kind) ? ' · ' + kindLabel(m.kind) : '') + '</small></div>' +
+            '<button class="btn" onclick="startEdit(' + args + ')">수정</button>' +
+            '<button class="btn" onclick="removeMission(' + args + ')">삭제</button></div>';
+        });
+        html += '<button class="btn add" onclick="startAdd(' + d.dow + ')">+ 미션 추가</button></div>';
+      });
+      app.innerHTML = html;
+      if (EDIT) window.scrollTo(0, 0);
+    }
+
+    var DAYS_FULL = ['', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+    function startAdd(dow) { EDIT = { mode: 'add', dow: dow }; renderConfig(CFG); }
+    function startEdit(dow, id) { EDIT = { mode: 'edit', dow: dow, id: id }; renderConfig(CFG); }
+
+    function saveForm() {
+      if (busy) return;
+      var m = { title: document.getElementById('f-title').value, detail: document.getElementById('f-detail').value,
+        points: document.getElementById('f-points').value, kind: document.getElementById('f-kind').value };
+      if (!m.title.trim()) { alert('미션 이름을 적어주세요'); return; }
+      var run = google.script.run.withSuccessHandler(function (c) { EDIT = null; renderConfig(c); })
+        .withFailureHandler(function (e) { busy = false; alert(e.message || e); });
+      busy = true;
+      if (EDIT.mode === 'add') {
+        var days = Array.prototype.slice.call(document.querySelectorAll('.f-day:checked')).map(function (x) { return Number(x.value); });
+        if (!days.length) { busy = false; alert('요일을 하나 이상 골라주세요'); return; }
+        run.addMission(PARENT_KEY, EKID, days, m);
+      } else {
+        run.updateMission(PARENT_KEY, EKID, EDIT.dow, EDIT.id, m);
+      }
+    }
+
+    function removeMission(dow, id) {
+      if (busy || !confirm(DAYS_FULL[dow] + '에서 이 미션을 뺄까요? 이미 확인한 포인트는 그대로 남아요.')) return;
+      busy = true;
+      google.script.run.withSuccessHandler(function (c) { EDIT = null; renderConfig(c); })
+        .withFailureHandler(function (e) { busy = false; alert(e.message || e); })
+        .deleteMission(PARENT_KEY, EKID, dow, id);
+    }
+
+    if (PARENT_KEY || PARENT_MODE) loadParent(); else loadKid();
+  </script>
+</body>
+</html>
