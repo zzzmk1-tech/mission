@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.0.1
+// @version      1.0.2
 // @description  체크 앱에서 엄마가 확인한 미션 포인트를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
@@ -107,12 +107,17 @@
 
   // 리액트 같은 화면에서도 값이 들어가도록
   function setValue(el, value) {
-    const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype
-      : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    // 요소 자신의 원형에서 value 설정 함수를 찾아요 (Firefox 확장 프로그램에서도 동작하게)
+    let proto = Object.getPrototypeOf(el);
+    let desc = null;
+    while (proto && !(desc = Object.getOwnPropertyDescriptor(proto, 'value'))) proto = Object.getPrototypeOf(proto);
     try {
-      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, String(value));
+      desc.set.call(el, String(value));
     } catch (e) {
       el.value = String(value);
+    }
+    if (el.tagName === 'SELECT' && el.value !== String(value)) {
+      Array.prototype.forEach.call(el.options, function (o) { o.selected = o.value === String(value); });
     }
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
