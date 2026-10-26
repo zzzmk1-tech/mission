@@ -209,7 +209,7 @@
       var waiting = data.missions.filter(function (m) { return m.state === 'pending'; }).length;
       var html = head +
         '<div class="points"><div class="pt"><b>' + data.todayPoints + '</b><span>오늘 받은 포인트</span></div>' +
-        '<div class="pt"><b>' + data.monthPoints + '</b><span>이번 달 (최대 ' + data.cap + ')</span></div></div>';
+        '<div class="pt"><b>' + data.monthPoints + '</b><span>이번 달' + (data.cap ? ' (최대 ' + data.cap + ')' : '') + '</span></div></div>';
       if (data.celebrate && data.celebrate.length) CHEER = (CHEER || []).concat(data.celebrate);
       if (CHEER) {
         var sum = CHEER.reduce(function (a, c) { return a + (c.points || 0); }, 0);
