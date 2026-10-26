@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.0.3
+// @version      1.0.4
 // @description  체크 앱에서 엄마가 확인한 미션 포인트를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
@@ -191,16 +191,55 @@
     return false;
   }
 
+  // 이름으로 시작하는 가장 안쪽 요소들 (예: "권우재 (kwonwj17)")
+  function byNameStart(name) {
+    const out = [];
+    document.querySelectorAll('body *').forEach(function (el) {
+      if (el.id === 'kids-study-btn' || !visible(el)) return;
+      const t = norm(el.textContent);
+      if (t.indexOf(name) !== 0 || t.length > name.length + 40) return;
+      const child = Array.prototype.some.call(el.children, function (c) { return norm(c.textContent).indexOf(name) === 0; });
+      if (!child) out.push(el);
+    });
+    return out;
+  }
+
+  // 이름 근처(몇 단계 위)에 있는 체크박스
+  function checkboxNear(el) {
+    let box = el;
+    for (let i = 0; i < 5 && box; i++) {
+      const cb = box.querySelector('input[type="checkbox"]');
+      if (cb) return cb;
+      box = box.parentElement;
+    }
+    return null;
+  }
+
+  function studentRow(name) {
+    const all = byNameStart(name);
+    return all.filter(function (el) { return checkboxNear(el); })[0] || all[0] || null;
+  }
+
+  // 체크박스가 있으면 체크 여부로, 없으면 지급 미리보기에 이름이 보이는지로 확인해요
+  function studentSelected(name) {
+    const row = studentRow(name);
+    const cb = row && checkboxNear(row);
+    return cb ? cb.checked : previewHas(name);
+  }
+
   async function selectStudent(name) {
     const none = byText('전체 해제')[0];
     if (none) { click(none); await sleep(300); }
-    // 지급 미리보기에도 이름이 보이니, 화면 왼쪽(학생 목록)에 있는 이름을 골라요
-    const row = await waitFor(function () {
-      return byText(name).sort(function (a, b) { return a.getBoundingClientRect().left - b.getBoundingClientRect().left; })[0];
-    }, 5000);
+    const row = await waitFor(function () { return studentRow(name); }, 5000);
     if (!row) return false;
+    if (studentSelected(name)) return true;
     click(row);
-    return !!(await waitFor(function () { return previewHas(name); }, 3000));
+    if (await waitFor(function () { return studentSelected(name); }, 1500)) return true;
+    // 이름을 눌러도 안 되면 체크박스를 직접 눌러요
+    const fresh = studentRow(name);
+    const cb = fresh && checkboxNear(fresh);
+    if (cb && !cb.checked) cb.click();
+    return !!(await waitFor(function () { return studentSelected(name); }, 2000));
   }
 
   async function chooseDirectInput(memo, amount) {
