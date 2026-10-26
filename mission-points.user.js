@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.0.5
+// @version      1.1.0
 // @description  체크 앱에서 엄마가 확인한 미션 포인트를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
@@ -10,6 +10,7 @@
 // @grant        GM_setValue
 // @grant        GM.getValue
 // @grant        GM.setValue
+// @grant        unsafeWindow
 // @connect      script.google.com
 // @connect      script.googleusercontent.com
 // @updateURL    https://zzzmk1-tech.github.io/mission/mission-points.user.js
@@ -61,6 +62,20 @@
   }
 
   // ---------- 화면 도우미 ----------
+
+  // 칭찬모아 화면 자체의 함수(preview_get 등)를 부를 때 쓰는 window
+  const PAGE = (typeof unsafeWindow !== 'undefined' && unsafeWindow) ? unsafeWindow : window;
+
+  function callPage(name) {
+    try { if (typeof PAGE[name] === 'function') { PAGE[name](); return true; } } catch (e) {}
+    return false;
+  }
+
+  function fire(el, type) {
+    const ev = /^key/.test(type) ? new KeyboardEvent(type, { bubbles: true, cancelable: true })
+      : new Event(type, { bubbles: true, cancelable: true });
+    try { el.dispatchEvent(ev); } catch (e) {}
+  }
 
   const sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
@@ -120,8 +135,8 @@
     if (el.tagName === 'SELECT' && el.value !== String(value)) {
       Array.prototype.forEach.call(el.options, function (o) { o.selected = o.value === String(value); });
     }
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
+    // 칭찬모아는 키를 뗄 때(keyup) 지급 요약을 다시 계산해서, keyup까지 보내요
+    ['input', 'keyup', 'change'].forEach(function (t) { fire(el, t); });
   }
 
   function inputByPlaceholder(word) {
@@ -131,6 +146,8 @@
   }
 
   function balance() {
+    const cp = document.getElementById('corp_point');
+    if (cp && /\d/.test(cp.textContent)) return Number(cp.textContent.replace(/[^\d]/g, ''));
     const label = byText('학원 보유 포인트')[0];
     if (!label) return null;
     let box = label.parentElement;
@@ -227,15 +244,31 @@
     return cb ? cb.checked : previewHas(name);
   }
 
+  // 칭찬모아 학생 목록의 체크박스 (li.ptg-stu 안 input[name=chk_1])
+  function siteCheckbox(name) {
+    const li = Array.prototype.filter.call(document.querySelectorAll('li.ptg-stu, li.student_li'), function (el) {
+      const nm = el.querySelector('.ptg-stu-nm');
+      return el.getAttribute('data-nm') === name || (nm && norm(nm.textContent).indexOf(name) === 0);
+    })[0];
+    return li ? li.querySelector('input[name="chk_1"]') : null;
+  }
+
   async function selectStudent(name) {
-    const none = byText('전체 해제')[0];
+    const none = document.getElementById('un_all_sel_btn') || byText('전체 해제')[0];
     if (none) { click(none); await sleep(300); }
-    const row = await waitFor(function () { return studentRow(name); }, 5000);
+    const site = await waitFor(function () { return siteCheckbox(name); }, 5000);
+    if (site) {
+      if (!site.checked) site.click();
+      callPage('student_cnt');
+      callPage('preview_get');
+      return !!(await waitFor(function () { const cb = siteCheckbox(name); return cb && cb.checked; }, 2000));
+    }
+    // 화면 구조가 바뀌었을 때: 이름이 적힌 줄을 찾아서 눌러요
+    const row = await waitFor(function () { return studentRow(name); }, 3000);
     if (!row) return false;
     if (studentSelected(name)) return true;
     click(row);
     if (await waitFor(function () { return studentSelected(name); }, 1500)) return true;
-    // 이름을 눌러도 안 되면 체크박스를 직접 눌러요
     const fresh = studentRow(name);
     const cb = fresh && checkboxNear(fresh);
     if (cb && !cb.checked) cb.click();
@@ -243,27 +276,52 @@
   }
 
   async function chooseDirectInput(memo, amount) {
-    const direct = byText('직접입력')[0];
-    if (!direct) return false;
-    click(direct);
-    await sleep(400);
-    // '칭찬 / 주의' 중 칭찬
-    const praise = byText('칭찬').filter(function (el) {
-      const p = clickable(el).parentElement;
-      return p && norm(p.textContent).indexOf('주의') >= 0;
-    })[0];
-    if (praise) { click(praise); await sleep(200); }
-    const memoInput = await waitFor(function () { return inputByPlaceholder('내용'); }, 3000);
-    const pointInput = inputByPlaceholder('포인트');
+    const mode = document.getElementById('rdo_1_3');
+    if (mode) {
+      // 직접입력으로 바꾸면 칭찬모아가 내용·포인트 칸을 비우니, 먼저 바꾸고 나서 채워요
+      if (!mode.checked) mode.click();
+      await sleep(300);
+      const praise = document.getElementById('rdo_2_1');
+      if (praise && !praise.checked) praise.click();
+    } else {
+      const direct = byText('직접입력')[0];
+      if (!direct) return false;
+      click(direct);
+      await sleep(400);
+      const praise = byText('칭찬').filter(function (el) {
+        const p = clickable(el).parentElement;
+        return p && norm(p.textContent).indexOf('주의') >= 0;
+      })[0];
+      if (praise) { click(praise); await sleep(200); }
+    }
+    const memoInput = await waitFor(function () {
+      return document.getElementById('point_title') || inputByPlaceholder('내용');
+    }, 3000);
+    const pointInput = document.getElementById('point_value') || inputByPlaceholder('포인트');
     if (!memoInput || !pointInput) return false;
     setValue(memoInput, memo);
     setValue(pointInput, amount);
+    callPage('preview_get');
     await sleep(300);
     return true;
   }
 
+  // 칭찬모아가 만든 지급 요약(1인당 포인트·내용)이 우리가 넣은 값과 같은지
+  function summaryMatches(kid) {
+    const total = document.getElementById('_total_point');
+    if (!total) return true; // 요약 칸이 없는 화면이면 확인 생략
+    const title = document.getElementById('title');
+    return Number(total.value) === Number(kid.amount) && (!title || norm(title.textContent) === norm(kid.memo));
+  }
+
+  function checkedStudents() {
+    return document.querySelectorAll('input[name="chk_1"]:checked').length;
+  }
+
   function payButton() {
-    // '지급'이 들어간 버튼 중 메뉴·회수·미리보기가 아닌 것 (휴대폰에선 '1명에게 120P 지급하기'처럼 다를 수 있어요)
+    const cta = document.querySelector('a.ptg-cta, .ptg-cta');
+    if (cta && visible(cta)) return { el: cta, sure: true };
+    // '지급'이 들어간 버튼 중 메뉴·회수·미리보기가 아닌 것
     const cands = Array.prototype.filter.call(document.querySelectorAll('button, [role="button"], a, input[type="submit"], input[type="button"]'), function (el) {
       const t = norm(el.textContent || el.value);
       const r = el.getBoundingClientRect();
@@ -271,11 +329,11 @@
         t.indexOf('지급') >= 0 && t.indexOf('회수') < 0 && t.indexOf('미리보기') < 0 && t.length <= 30 &&
         !el.closest('nav, aside, header, [class*="menu"], [class*="Menu"], [class*="sidebar"], [class*="Sidebar"], [class*="drawer"]');
     });
-    // 왼쪽 메뉴는 화면 왼쪽에 있으니, 가장 오른쪽·아래에 있는 버튼을 골라요
-    return cands.sort(function (a, b) {
+    const el = cands.sort(function (a, b) {
       const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
       return (rb.left + rb.top + window.scrollY) - (ra.left + ra.top + window.scrollY);
     })[0];
+    return el ? { el: el, sure: false } : null;
   }
 
   async function confirmDialogIfAny() {
@@ -296,14 +354,24 @@
     status(kid.name + ': 직접입력 채우는 중');
     if (!(await chooseDirectInput(kid.memo, kid.amount))) throw new Error('직접입력 칸을 찾지 못했어요');
 
+    // 칭찬모아 지급 요약이 맞게 만들어졌는지 확인 (안 맞으면 지급하지 않아요)
+    if (!(await waitFor(function () { return summaryMatches(kid); }, 3000))) {
+      throw new Error('칭찬모아 지급 요약이 만들어지지 않았어요. 지급하지 않았어요');
+    }
+    const n = checkedStudents();
+    if (document.querySelector('input[name="chk_1"]') && n !== 1) {
+      throw new Error('학생이 ' + n + '명 선택돼 있어요. 지급하지 않았어요');
+    }
+
     if (!window.confirm(kid.cmName + '에게 ' + kid.amount + '점을 지급할까요?\n내용: ' + kid.memo +
-        '\n\n화면에 학생·내용·포인트가 맞게 들어갔는지 확인해 주세요.')) {
+        '\n\n확인을 누르면 칭찬모아가 "[' + kid.amount + '] 포인트 지급을 하시겠습니까?"를 한 번 더 물어봐요. 거기서도 확인을 눌러주세요.')) {
       return false;
     }
     const before = balance();
-    const btn = payButton();
-    if (!btn) throw new Error('"포인트 지급하기" 버튼을 찾지 못했어요');
-    if (!window.confirm('이 버튼을 누를게요: "' + norm(btn.textContent || btn.value) + '"\n맞으면 확인을 눌러주세요.')) return false;
+    const pb = payButton();
+    if (!pb) throw new Error('"포인트 지급하기" 버튼을 찾지 못했어요');
+    const btn = pb.el;
+    if (!pb.sure && !window.confirm('이 버튼을 누를게요: "' + norm(btn.textContent || btn.value) + '"\n맞으면 확인을 눌러주세요.')) return false;
     try { btn.scrollIntoView({ block: 'center' }); } catch (e) {}
     await sleep(300);
     const token = kid.kid + '-' + Date.now();
@@ -312,7 +380,7 @@
 
     let done = false;
     if (before !== null) {
-      done = !!(await waitFor(function () { const b = balance(); return b !== null && b <= before - kid.amount; }, 8000));
+      done = !!(await waitFor(function () { const b = balance(); return b !== null && b <= before - kid.amount; }, 30000));
     }
     if (!done) {
       done = window.confirm('칭찬모아에서 ' + kid.cmName + ' ' + kid.amount + '점 지급이 완료됐나요?\n' +
