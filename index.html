@@ -9,7 +9,10 @@
     :root { --bg:#f3f6f1; --card:#fff; --ink:#1f2a24; --sub:#6b746e; --accent:#2f8f5b; --accent2:#7cc49a;
       --soft:#e6f4ec; --wait:#e08a12; --waitsoft:#fff3df; --line:#e2e7e2; --hero1:#3aa56c; --hero2:#8fd3a8; }
     body.kid-daughter { --bg:#f4f3fb; --accent:#6a5acd; --accent2:#a99ef0; --soft:#eeebfc; --hero1:#6a5acd; --hero2:#b6a9f5; }
-    body.parent { --bg:#f5f4f0; --hero1:#3d4a5c; --hero2:#7a8aa3; }
+    body.parent { --bg:#fbf8ef; --accent:#b8860b; --soft:#fff6d8; --wait:#e2622b; --waitsoft:#ffece3; --line:#ece4cf;
+      --hero1:#f2b705; --hero2:#ffdf6e; }
+    body.parent .hero { color:#3b2f00; }
+    body.parent .tab.on, body.parent .btn.ok { color:#fff; }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     body { margin:0; background:var(--bg); color:var(--ink);
       font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif; }
@@ -22,7 +25,7 @@
       background:linear-gradient(135deg, var(--hero1), var(--hero2)); box-shadow:0 8px 20px -10px var(--hero1); }
     .hero h1 { font-size:24px; margin:2px 0; }
     .hero .hello { font-size:15px; opacity:.9; }
-    .hero h1, .hero .hello { padding-right:64px; position:relative; }
+    .hero h1, .hero .hello, .hero .when { padding-right:64px; position:relative; }
     .hero .when { font-size:14px; opacity:.85; }
     .hero .mascot { position:absolute; right:14px; top:10px; font-size:58px; transform:rotate(-8deg); }
     .hero .bubble { position:absolute; right:-30px; bottom:-40px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.15); }
@@ -364,7 +367,7 @@
 
     function parentHero(sub) {
       document.body.className = 'parent';
-      return '<div class="hero"><div class="bubble"></div><div class="mascot">🌱</div><h1>엄마 확인</h1><div class="when">' + sub + '</div></div>';
+      return '<div class="hero"><div class="bubble"></div><div class="mascot">🌻</div><h1>엄마 확인</h1><div class="when">' + sub + '</div></div>';
     }
 
     function keyScreen(msg) {
