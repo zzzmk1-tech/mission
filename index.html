@@ -114,7 +114,12 @@
     .day ul, .guide ul, .guide ol { margin:6px 0 0; padding-left:20px; }
     .day li, .guide li { margin:3px 0; }
     .guide { background:var(--card); border-radius:18px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
-    .guide h3 { margin:0 0 4px; font-size:17px; color:var(--accent); }
+    .guide h3 { margin:0 0 4px; font-size:17px; color:var(--accent); display:inline; }
+    details.guide summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+    details.guide summary::-webkit-details-marker { display:none; }
+    details.guide summary:after { content:'▾'; color:var(--sub); transition:transform .2s; }
+    details.guide[open] summary:after { transform:rotate(180deg); }
+    details.guide[open] summary { margin-bottom:6px; }
     .guide p { margin:4px 0; color:var(--sub); font-size:14px; }
     .rules { background:var(--card); border-radius:18px; padding:14px 16px; margin:16px 0; font-size:15px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
     .rules summary { font-weight:700; cursor:pointer; }
@@ -170,33 +175,36 @@
     var LAST = null;
     var DAYS = ['일','월','화','수','목','금','토'];
 
+    // 소율 공부법: 과목별로 접었다 펼쳐 봐요
     var GUIDE = [
-      { t: '매일 같은 4단계', p: '어떤 과목이든 이 순서로 해요.', items: [
-        '복습 10분: 이번 주 배운 부분 교과서를 다시 읽고 중요한 말에 밑줄',
-        '한 장 요약 15분: 책을 덮고 기억나는 걸 공책 한 장에 쓰기 → 책과 비교해 빠진 것 채우기',
-        '문제 풀기 15분: 평가문제집에서 그 범위 문제 10개',
-        '오답 정리 10분: 틀린 문제만 오답 노트에 옮기고, 왜 틀렸는지 한 줄 쓰기'] },
-      { t: '국어 (화·금)', p: '읽고 근거 찾는 연습이 핵심이에요.', items: [
-        '본문을 소리 내어 한 번 읽고, 모르는 낱말에 표시해 뜻 찾기',
-        '단원 첫 쪽 학습 목표 확인하기: 시험 문제는 여기서 나와요',
-        '시는 말하는 이·표현법, 소설은 인물·사건·배경·갈등, 설명문은 문단마다 중심 문장 찾기',
-        '요약은 문단마다 한 줄씩',
-        '문제를 틀리면 정답의 근거가 되는 문장을 본문에서 찾아 밑줄 긋기'] },
-      { t: '과학 (수·토)', p: '외우기보다 그림으로 이해해요.', items: [
-        '교과서 그림·도표를 공책에 직접 따라 그리고 설명 달기',
+      { t: '📌 매번 같은 순서', p: '어떤 과목이든 이 틀로 하면 "뭐부터 하지?" 고민할 필요가 없어요.', open: true, items: [
+        '50분 날: 복습 10분 → 한 장 요약 15분 → 문제 15분 → 오답 10분',
+        '30분 날(월·목): 복습 10분 → 문제 15분 → 오답 5분 (요약은 다음 50분 날에)',
+        '한 장 요약: 책을 덮고 기억나는 걸 공책 한 쪽에 쓰고, 책과 비교해 빠진 걸 다른 색으로 채우기',
+        '오답 정리: 틀린 문제만 오답 노트에 옮기고, 왜 틀렸는지 한 줄 쓰기'] },
+      { t: '✏️ 국어 (월 30분 · 금 50분)', p: '"읽고 근거 찾기"만 꾸준히 해도 달라져요.', items: [
+        '월: 지난주 본문을 소리 내어 한 번 읽기 → 모르는 낱말 3개 뜻 찾아 적기 → 문제',
+        '금: 단원 첫 쪽 학습 목표부터 확인 (시험은 여기서 나와요)',
+        '시: 말하는 이, 분위기, 표현법(비유·반복 등)',
+        '소설: 인물·사건·배경·갈등을 4칸 표로',
+        '설명문·논설문: 문단마다 중심 문장 한 줄',
+        '틀린 문제는 정답의 근거가 되는 문장을 본문에서 찾아 밑줄'] },
+      { t: '🔤 영어 (화 50분 + 단어 화·수·금·토)', p: '단어는 자주, 본문과 문법은 화요일에.', items: [
+        '단어: 30개 소리 내어 3번 읽기 → 가리고 뜻 쓰기 → 워크북으로 확인',
+        '틀린 단어는 다음 단어 날 맨 먼저 다시 시험',
+        '화: 본문 듣기 → 소리 내어 3번 읽기 → 한 문장씩 해석',
+        '해석만 보고 영어 문장으로 다시 써 보기',
+        '단원 문법은 예문 2개를 통째로 외우기 → 문제집'] },
+      { t: '🔬 과학 (수 50분 · 주말 하루 50분)', p: '외우기보다 그림으로 이해해요. 주말 과학은 토·일 중 하루만 하면 돼요.', items: [
+        '수: 교과서 그림·도표를 공책에 따라 그리고 설명 달기',
         '핵심 용어를 내 말로 설명해 보기 (엄마나 동생에게 설명해도 좋아요)',
-        '실험은 목적 → 과정 → 결과 → 결론 4칸 표로 정리',
-        '한 장 요약은 마인드맵으로'] },
-      { t: '사회 (월)', p: '용어와 흐름을 잡아요.', items: [
-        '단원 목차를 빈 종이에 안 보고 써보기 (빈 종이 테스트)',
-        '용어 카드 만들기: 앞면 용어, 뒷면 뜻',
-        '지리 단원은 사회과부도에서 위치를 꼭 찾아보기',
-        '그래프·지도 자료 문제는 제목과 단위부터 읽기'] },
-      { t: '영어 (목)', p: '단어는 매일, 본문과 문법은 목요일에.', items: [
-        '본문 듣기 → 소리 내어 3번 읽기 → 한 문장씩 해석',
-        '해석을 보고 영어 문장으로 다시 써보기',
-        '단원 문법은 예문 2개를 통째로 외우기',
-        '학원 가는 날이라 30분: 본문 읽기와 문법 정리까지만'] },
+        '주말: 그 주 내용을 마인드맵 한 장으로 요약',
+        '실험은 목적 → 과정 → 결과 → 결론 4칸 표로'] },
+      { t: '🌏 사회 (목 30분)', p: '용어와 흐름을 잡아요.', items: [
+        '빈 종이에 단원 목차를 안 보고 써 보기 (5분)',
+        '용어 카드 5장 만들기: 앞면 용어, 뒷면 뜻',
+        '지리 단원은 사회과부도에서 위치 찾기',
+        '그래프·지도 문제는 제목과 단위부터 읽기'] },
     ];
 
     function tabs(isDaughter) {
@@ -224,10 +232,9 @@
     }
 
     function studyHtml() {
-      return GUIDE.map(function (g, i) {
-        var tag = i === 0 ? 'ol' : 'ul';
-        return '<div class="guide"><h3>' + g.t + '</h3><p>' + g.p + '</p><' + tag + '>' +
-          g.items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</' + tag + '></div>';
+      return '<div class="date" style="margin:0 4px 10px">필요한 과목만 눌러서 펼쳐 보세요</div>' + GUIDE.map(function (g) {
+        return '<details class="guide"' + (g.open ? ' open' : '') + '><summary><h3>' + g.t + '</h3></summary><p>' + g.p + '</p><ul>' +
+          g.items.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></details>';
       }).join('');
     }
 
@@ -272,9 +279,10 @@
     }
 
     function missionHtml(m) {
-      var tag = m.state === 'pending' ? '엄마 확인 기다리는 중' : m.state === 'approved' ? '엄마 확인 완료!' : '';
+      var tag = m.otherDay ? m.otherDay + '요일에 했어요' : m.state === 'pending' ? '엄마 확인 기다리는 중' : m.state === 'approved' ? '엄마 확인 완료!' : '';
       var badge = m.kind === '보너스' ? '<span class="badge">선택</span>' : m.kind === '완료보너스' ? '<span class="badge">보너스</span>' : '';
-      return '<button class="m ' + m.state + '" onclick="toggle(\'' + m.id + '\',\'' + m.state + '\')">' +
+      var st = m.otherDay ? 'other' : m.state;
+      return '<button class="m ' + m.state + '" onclick="toggle(\'' + m.id + '\',\'' + st + '\')">' +
         '<div class="ico">' + iconFor(m.title) + '</div>' +
         '<div class="body"><div class="t">' + esc(m.title) + badge + '</div><div class="d">' + esc(m.detail) + '</div>' +
         (tag ? '<div class="tag">' + tag + '</div>' : '') + '</div>' +
@@ -301,8 +309,10 @@
       if (waiting) html += '<div class="hint">⏳ 엄마 확인을 기다리는 미션 ' + waiting + '개. 확인되면 포인트가 들어와요.</div>';
       if (!data.missions.length) html += '<div class="rest"><div class="big">😴</div>오늘은 쉬는 날이에요. 푹 쉬어요!</div>';
       var core = data.missions.filter(function (m) { return m.kind === '기본'; });
-      var extra = data.missions.filter(function (m) { return m.kind !== '기본'; });
+      var weekend = data.missions.filter(function (m) { return m.kind === '주말'; });
+      var extra = data.missions.filter(function (m) { return m.kind !== '기본' && m.kind !== '주말'; });
       if (core.length) html += '<div class="sec">오늘 꼭 할 미션</div>' + core.map(missionHtml).join('');
+      if (weekend.length) html += '<div class="sec">주말 미션 · 토·일 중 하루만 하면 돼요</div>' + weekend.map(missionHtml).join('');
       if (extra.length) html += '<div class="sec">더 하면 포인트 UP</div>' + extra.map(missionHtml).join('');
       if (data.bonus) html += '<div class="bonus"><div class="ico">🌟</div><div>기본 미션을 모두 해서<br><b>다 했어요 보너스 +' + data.bonus + '</b></div></div>';
       if (data.weekBonus) html += '<div class="bonus"><div class="ico">🏆</div><div>이번 주 하루도 안 빼고 해서<br><b>주간 보너스 +' + data.weekBonus + '</b></div></div>';
@@ -316,7 +326,7 @@
     }
 
     function toggle(id, state) {
-      if (busy || state === 'approved') return;
+      if (busy || state === 'approved' || state === 'other') return;
       busy = true;
       google.script.run.withSuccessHandler(function (d) { busy = false; renderKid(d); })
         .withFailureHandler(fail).toggleMission(KID, id);
@@ -332,6 +342,8 @@
       } else if (it.state === 'pending') {
         btns = '<button class="btn" onclick="act(' + args + ',\'reject\')">취소</button>' +
           '<button class="btn ok" onclick="act(' + args + ',\'approve\')">확인</button>';
+      } else if (it.state === 'other') {
+        btns = '<span class="wait-mark">' + esc(it.otherDay) + '요일에 함</span>';
       } else {
         btns = '<span class="wait-mark">아직 안 함</span>';
       }
@@ -356,11 +368,11 @@
         k.today.forEach(function (it) { html += parentRow(k.kid, it, false); });
         if (k.bonus) html += '<div class="row approved"><div class="info">다 했어요 보너스<small>기본 미션을 모두 확인해서 자동으로 들어가요</small></div><span class="done-mark">+' + k.bonus + '</span></div>';
         if (k.weekBonus) html += '<div class="row approved"><div class="info">주간 보너스<small>이번 주 기본 미션을 하루도 안 빼고 해서 자동으로 들어가요</small></div><span class="done-mark">+' + k.weekBonus + '</span></div>';
-        html += rulesHtml(k.rules, k.name + ' 포인트 규칙');
         if (k.past.length) {
           html += '<div class="date" style="margin-top:10px">지난 미션 중 확인 안 한 것</div>';
           k.past.forEach(function (it) { html += parentRow(k.kid, it, true); });
         }
+        html += rulesHtml(k.rules, k.name + ' 포인트 규칙');
       });
       app.innerHTML = html;
     }
@@ -421,7 +433,7 @@
         '<label class="lbl">종류</label><select id="f-kind" class="inp">' + CFG.kinds.map(function (k) {
           return '<option' + (k === m.kind ? ' selected' : '') + '>' + k + '</option>';
         }).join('') + '</select>' +
-        '<p>기본: 꼭 할 미션 · 보너스: 하면 더 받는 선택 미션 · 완료보너스: 기본 미션을 다 한 날만 포인트</p>';
+        '<p>기본: 꼭 할 미션 · 보너스: 하면 더 받는 선택 미션 · 완료보너스: 기본 미션을 다 한 날만 포인트 · 주말: 토·일에 같이 넣으면 하루만 하면 돼요</p>';
       if (EDIT.mode === 'add') {
         html += '<label class="lbl">요일 (여러 개 고를 수 있어요)</label><div class="daypick">';
         for (var d = 1; d <= 7; d++) {
