@@ -144,10 +144,14 @@
     .chip b { color:var(--accent); }
     .wkd { padding:10px 0; border-top:1px solid var(--line); }
     .wkd:first-child { border-top:0; }
-    .wkd-h { display:flex; justify-content:space-between; font-weight:700; }
+    .wkd-h { display:flex; justify-content:space-between; font-weight:700; cursor:pointer; list-style:none; }
+    .wkd-h::-webkit-details-marker { display:none; }
+    .wkd-h .pts:after { content:' ▾'; color:var(--sub); font-weight:400; }
+    .wkd[open] .wkd-h { margin-bottom:4px; }
     .wkd-h .pts { color:var(--accent); }
     .wkd.future { opacity:.45; }
     .wkd.today .wkd-h span:first-child:after { content:' · 오늘'; color:var(--accent); font-size:12px; }
+    .wkd.future .wkd-h .pts:after { content:''; }
     .wki { font-size:14px; margin-top:4px; display:flex; gap:6px; }
     .wki small { color:var(--sub); }
     .rules { background:var(--card); border-radius:18px; padding:14px 16px; margin:16px 0; font-size:15px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
@@ -239,7 +243,7 @@
     ];
 
     function tabs(isDaughter) {
-      var list = [['today','오늘'],['cal','달력'],['week','요일별']];
+      var list = [['today','오늘'],['cal','이번 달'],['week','요일별']];
       if (isDaughter) list.push(['study','공부법']);
       return '<div class="tabs">' + list.map(function (x) {
         return '<button class="tab' + (VIEW === x[0] ? ' on' : '') + '" onclick="go(\'' + x[0] + '\')">' + x[1] + '</button>';
@@ -439,15 +443,17 @@
           '<span class="chip">칭찬모아 미지급 <b>' + k.unpaid + '점</b></span></div><div class="wk">';
         k.days.forEach(function (d) {
           if (!d.items.length && !d.points) return;
-          html += '<div class="wkd' + (d.future ? ' future' : '') + (d.today ? ' today' : '') + '"><div class="wkd-h"><span>' +
-            d.day + ' ' + d.md + (d.allCore ? ' ⭐' : '') + '</span><span class="pts">' + (d.future ? '' : d.points + '점') + '</span></div>';
+          var waits = d.items.filter(function (it) { return it.state === 'pending'; }).length;
+          html += '<details class="wkd' + (d.future ? ' future' : '') + (d.today ? ' today' : '') + '"' + (d.today ? ' open' : '') +
+            '><summary class="wkd-h"><span>' + d.day + ' ' + d.md + (d.allCore ? ' ⭐' : '') + (waits ? ' 🟠' + waits : '') +
+            '</span><span class="pts">' + (d.future ? '' : d.points + '점') + '</span></summary>';
           d.items.forEach(function (it) {
             if (it.kind === '보너스' && it.state === 'none') return; // 안 한 선택 미션은 빼요
             var note = it.state === 'other' ? it.otherDay + '요일에 함' : it.checkedAt ? it.checkedAt + ' 체크' : '';
             html += '<div class="wki"><span>' + (d.future && it.state === 'none' ? '·' : mark[it.state]) + '</span><span>' + esc(it.title) +
               (note ? ' <small>' + esc(note) + '</small>' : '') + '</span></div>';
           });
-          html += '</div>';
+          html += '</details>';
         });
         html += '</div>';
       });
