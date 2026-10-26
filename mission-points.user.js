@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.0.4
+// @version      1.0.5
 // @description  체크 앱에서 엄마가 확인한 미션 포인트를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
@@ -263,9 +263,19 @@
   }
 
   function payButton() {
-    // 왼쪽 메뉴에도 같은 글자가 있어서, 화면 오른쪽(지급 미리보기)에 있는 버튼을 골라요
-    return byText('포인트 지급하기').map(clickable).filter(function (el) { return el.tagName === 'BUTTON'; })
-      .sort(function (a, b) { return b.getBoundingClientRect().left - a.getBoundingClientRect().left; })[0];
+    // '지급'이 들어간 버튼 중 메뉴·회수·미리보기가 아닌 것 (휴대폰에선 '1명에게 120P 지급하기'처럼 다를 수 있어요)
+    const cands = Array.prototype.filter.call(document.querySelectorAll('button, [role="button"], a, input[type="submit"], input[type="button"]'), function (el) {
+      const t = norm(el.textContent || el.value);
+      const r = el.getBoundingClientRect();
+      return el.id !== 'kids-study-btn' && visible(el) && r.right > 0 && r.left < window.innerWidth &&
+        t.indexOf('지급') >= 0 && t.indexOf('회수') < 0 && t.indexOf('미리보기') < 0 && t.length <= 30 &&
+        !el.closest('nav, aside, header, [class*="menu"], [class*="Menu"], [class*="sidebar"], [class*="Sidebar"], [class*="drawer"]');
+    });
+    // 왼쪽 메뉴는 화면 왼쪽에 있으니, 가장 오른쪽·아래에 있는 버튼을 골라요
+    return cands.sort(function (a, b) {
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+      return (rb.left + rb.top + window.scrollY) - (ra.left + ra.top + window.scrollY);
+    })[0];
   }
 
   async function confirmDialogIfAny() {
@@ -293,6 +303,9 @@
     const before = balance();
     const btn = payButton();
     if (!btn) throw new Error('"포인트 지급하기" 버튼을 찾지 못했어요');
+    if (!window.confirm('이 버튼을 누를게요: "' + norm(btn.textContent || btn.value) + '"\n맞으면 확인을 눌러주세요.')) return false;
+    try { btn.scrollIntoView({ block: 'center' }); } catch (e) {}
+    await sleep(300);
     const token = kid.kid + '-' + Date.now();
     click(btn);
     await confirmDialogIfAny();
