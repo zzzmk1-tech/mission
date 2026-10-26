@@ -121,6 +121,35 @@
     details.guide[open] summary:after { transform:rotate(180deg); }
     details.guide[open] summary { margin-bottom:6px; }
     .guide p { margin:4px 0; color:var(--sub); font-size:14px; }
+    .when-t { display:inline-block; font-size:12px; color:var(--sub); margin-top:6px; margin-left:6px; }
+    .cal-head { display:flex; align-items:center; justify-content:space-between; margin:0 4px 10px; }
+    .cal-head b { font-size:18px; }
+    .cal-nav { font:inherit; font-size:18px; width:40px; height:40px; border-radius:12px; border:0; background:var(--card); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .cal-total { background:var(--card); border-radius:18px; padding:12px; text-align:center; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .cal-total b { font-size:26px; color:var(--accent); }
+    .cal { display:grid; grid-template-columns:repeat(7, 1fr); gap:5px; background:var(--card); border-radius:18px; padding:10px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .cal .dn { text-align:center; font-size:12px; color:var(--sub); padding:2px 0 4px; }
+    .cal .dn.sun { color:#d9534f; }
+    .cell { min-height:58px; border-radius:12px; padding:5px 2px; text-align:center; background:var(--bg); display:flex; flex-direction:column; align-items:center; gap:2px; }
+    .cell .n { font-size:12px; color:var(--sub); }
+    .cell .v { font-size:13px; font-weight:800; color:var(--accent); }
+    .cell .e { font-size:13px; line-height:1; }
+    .cell.done { background:var(--soft); }
+    .cell.today { outline:2px solid var(--accent); }
+    .cell.future, .cell.blank { background:transparent; }
+    .cal-legend { font-size:12px; color:var(--sub); margin:10px 4px; text-align:center; }
+    .wk { background:var(--card); border-radius:18px; padding:4px 14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .wk-sum { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+    .chip { font-size:13px; background:var(--card); border-radius:99px; padding:5px 10px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+    .chip b { color:var(--accent); }
+    .wkd { padding:10px 0; border-top:1px solid var(--line); }
+    .wkd:first-child { border-top:0; }
+    .wkd-h { display:flex; justify-content:space-between; font-weight:700; }
+    .wkd-h .pts { color:var(--accent); }
+    .wkd.future { opacity:.45; }
+    .wkd.today .wkd-h span:first-child:after { content:' · 오늘'; color:var(--accent); font-size:12px; }
+    .wki { font-size:14px; margin-top:4px; display:flex; gap:6px; }
+    .wki small { color:var(--sub); }
     .rules { background:var(--card); border-radius:18px; padding:14px 16px; margin:16px 0; font-size:15px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
     .rules summary { font-weight:700; cursor:pointer; }
     .rules ul { margin:10px 0 0; padding-left:20px; }
@@ -156,7 +185,7 @@
         withFailureHandler: function (f) { bad = f; return r; },
       };
       ['getToday', 'toggleMission', 'getParentView', 'parentAction',
-       'getMissionConfig', 'addMission', 'updateMission', 'deleteMission'].forEach(function (fn) {
+       'getMissionConfig', 'addMission', 'updateMission', 'deleteMission', 'getCalendar', 'getWeekReport'].forEach(function (fn) {
         r[fn] = function () {
           var args = Array.prototype.slice.call(arguments);
           var url = API_URL + '?api=call&fn=' + fn + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&t=' + Date.now();
@@ -210,13 +239,42 @@
     ];
 
     function tabs(isDaughter) {
-      var list = [['today','오늘'],['week','요일별 미션']];
+      var list = [['today','오늘'],['cal','달력'],['week','요일별']];
       if (isDaughter) list.push(['study','공부법']);
       return '<div class="tabs">' + list.map(function (x) {
         return '<button class="tab' + (VIEW === x[0] ? ' on' : '') + '" onclick="go(\'' + x[0] + '\')">' + x[1] + '</button>';
       }).join('') + '</div>';
     }
-    function go(v) { VIEW = v; if (LAST) renderKid(LAST); }
+    function go(v) { VIEW = v; if (v === 'cal') return loadCal(); if (LAST) renderKid(LAST); }
+
+    // ----- 아이 달력 -----
+    var CALMONTH = '', CAL = null;
+    function loadCal(delta) {
+      if (delta && CAL) {
+        var y = Number(CAL.month.slice(0, 4)), m = Number(CAL.month.slice(5)) + delta;
+        if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+        CALMONTH = y + '-' + (m < 10 ? '0' : '') + m;
+      }
+      google.script.run.withSuccessHandler(function (c) { CAL = c; renderCal(); }).withFailureHandler(fail).getCalendar(KID, CALMONTH);
+    }
+    function renderCal() {
+      var html = (LAST ? heroHtml(LAST) : '') + tabs(KID === 'daughter');
+      html += '<div class="cal-head"><button class="cal-nav" onclick="loadCal(-1)">‹</button><b>' + esc(CAL.label) + '</b>' +
+        '<button class="cal-nav" onclick="loadCal(1)">›</button></div>';
+      html += '<div class="cal-total">이번 달 모은 포인트<br><b>' + CAL.total + '</b></div>';
+      html += '<div class="cal">' + ['일','월','화','수','목','금','토'].map(function (d, i) {
+        return '<div class="dn' + (i === 0 ? ' sun' : '') + '">' + d + '</div>'; }).join('');
+      var lead = CAL.days[0].dow % 7; // 일요일 시작
+      for (var i = 0; i < lead; i++) html += '<div class="cell blank"></div>';
+      CAL.days.forEach(function (d) {
+        var cls = 'cell' + (d.future ? ' future' : '') + (d.today ? ' today' : '') + (d.points > 0 ? ' done' : '');
+        var emo = d.weekBonus ? '🏆' : d.allCore ? '⭐' : (d.checked && !d.future ? '·' : '');
+        html += '<div class="' + cls + '"><span class="n">' + d.day + '</span>' +
+          (d.points > 0 ? '<span class="v">' + d.points + '</span>' : '') + (emo ? '<span class="e">' + emo + '</span>' : '') + '</div>';
+      });
+      html += '</div><div class="cal-legend">⭐ 기본 미션 다 한 날 · 🏆 주간 보너스 · 숫자는 엄마가 확인한 포인트</div>';
+      app.innerHTML = html;
+    }
 
     function weekHtml(data) {
       var todayName = DAYS[new Date().getDay()];
@@ -261,7 +319,7 @@
       son: { mascot: '🦎', hello: '안녕, 우재!' },
       daughter: { mascot: '📚', hello: '안녕, 소율!' },
     };
-    var ICONS = [[/연산|계산/, '🔢'], [/수학/, '📐'], [/독해|독서|책/, '📖'], [/파닉스|EBS|영어|듀오/, '🔤'],
+    var ICONS = [[/강의|인강/, '📺'], [/연산|계산/, '🔢'], [/수학/, '📐'], [/독해|독서|책/, '📖'], [/파닉스|EBS|영어|듀오/, '🔤'],
       [/단어/, '📝'], [/국어/, '✏️'], [/과학/, '🔬'], [/사회/, '🌏'], [/놀기|놀|끝냈/, '⚽'], [/태권/, '🥋']];
     function iconFor(title) {
       for (var i = 0; i < ICONS.length; i++) if (ICONS[i][0].test(title)) return ICONS[i][1];
@@ -287,7 +345,8 @@
       return '<button class="m ' + m.state + '" onclick="toggle(\'' + m.id + '\',\'' + st + '\')">' +
         '<div class="ico">' + iconFor(m.title) + '</div>' +
         '<div class="body"><div class="t">' + esc(m.title) + badge + '</div><div class="d">' + esc(m.detail) + '</div>' +
-        (tag ? '<div class="tag">' + tag + '</div>' : '') + '</div>' +
+        (tag ? '<div class="tag">' + tag + '</div>' : '') +
+        (m.checkedAt ? '<span class="when-t">⏰ ' + esc(m.checkedAt) + ' 체크</span>' : '') + '</div>' +
         '<div class="p">+' + m.points + '</div><div class="box">' + (m.state !== 'none' ? '✓' : '') + '</div></button>';
     }
 
@@ -295,6 +354,7 @@
       LAST = data;
       document.body.className = 'kid-' + KID;
       var head = heroHtml(data) + tabs(KID === 'daughter');
+      if (VIEW === 'cal') { if (CAL) renderCal(); else loadCal(); return; }
       if (VIEW === 'week') { app.innerHTML = head + weekHtml(data); return; }
       if (VIEW === 'study') { app.innerHTML = head + studyHtml(); return; }
       var waiting = data.missions.filter(function (m) { return m.state === 'pending'; }).length;
@@ -349,18 +409,51 @@
       } else {
         btns = '<span class="wait-mark">아직 안 함</span>';
       }
+      var sub = [showDate ? it.date : '', it.checkedAt ? '⏰ ' + it.checkedAt + ' 체크' : ''].filter(Boolean).join(' · ');
       return '<div class="row ' + it.state + '"><div class="info">' + esc(it.title) +
-        (showDate ? '<small>' + esc(it.date) + '</small>' : '') + '</div>' + btns + '</div>';
+        (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' + btns + '</div>';
     }
 
     var PVIEW = 'check', EKID = 'son', CFG = null, EDIT = null;
 
     function parentTabs() {
-      return '<div class="tabs">' + [['check','미션 확인'],['edit','미션 수정']].map(function (x) {
+      return '<div class="tabs">' + [['check','미션 확인'],['report','이번 주'],['edit','미션 수정']].map(function (x) {
         return '<button class="tab' + (PVIEW === x[0] ? ' on' : '') + '" onclick="pgo(\'' + x[0] + '\')">' + x[1] + '</button>';
       }).join('') + '</div>';
     }
-    function pgo(v) { PVIEW = v; EDIT = null; if (v === 'edit') loadConfig(); else loadParent(); }
+    function pgo(v) { PVIEW = v; EDIT = null; if (v === 'edit') loadConfig(); else if (v === 'report') loadReport(); else loadParent(); }
+
+    // ----- 엄마: 이번 주 -----
+    function loadReport() {
+      google.script.run.withSuccessHandler(renderReport).withFailureHandler(fail).getWeekReport(PARENT_KEY);
+    }
+    function renderReport(r) {
+      var mark = { approved: '✅', pending: '🟠', none: '⬜', other: '↔️' };
+      var html = parentHero('이번 주 ' + esc(r.range)) + parentTabs();
+      r.kids.forEach(function (k) {
+        html += '<h2>' + esc(k.name) + '</h2><div class="wk-sum">' +
+          '<span class="chip">이번 주 <b>' + k.total + '점</b></span>' +
+          '<span class="chip">기본 미션 다 한 날 <b>' + k.doneDays + '/' + k.coreDays + '</b></span>' +
+          (k.pending ? '<span class="chip">확인 기다림 <b>' + k.pending + '</b></span>' : '') +
+          (k.weekBonus ? '<span class="chip">🏆 주간 보너스</span>' : '') +
+          '<span class="chip">칭찬모아 미지급 <b>' + k.unpaid + '점</b></span></div><div class="wk">';
+        k.days.forEach(function (d) {
+          if (!d.items.length && !d.points) return;
+          html += '<div class="wkd' + (d.future ? ' future' : '') + (d.today ? ' today' : '') + '"><div class="wkd-h"><span>' +
+            d.day + ' ' + d.md + (d.allCore ? ' ⭐' : '') + '</span><span class="pts">' + (d.future ? '' : d.points + '점') + '</span></div>';
+          d.items.forEach(function (it) {
+            if (it.kind === '보너스' && it.state === 'none') return; // 안 한 선택 미션은 빼요
+            var note = it.state === 'other' ? it.otherDay + '요일에 함' : it.checkedAt ? it.checkedAt + ' 체크' : '';
+            html += '<div class="wki"><span>' + (d.future && it.state === 'none' ? '·' : mark[it.state]) + '</span><span>' + esc(it.title) +
+              (note ? ' <small>' + esc(note) + '</small>' : '') + '</span></div>';
+          });
+          html += '</div>';
+        });
+        html += '</div>';
+      });
+      html += '<div class="cal-legend">✅ 엄마 확인 · 🟠 확인 기다림 · ⬜ 안 함 · ⭐ 기본 미션 다 한 날</div>';
+      app.innerHTML = html;
+    }
 
     function renderParent(data) {
       var html = parentHero(esc(data.date) + ' · 확인한 미션만 포인트로 들어가요') + parentTabs();
