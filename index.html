@@ -6,46 +6,94 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <style>
-    :root { --bg:#f6f4ee; --card:#fff; --ink:#222; --sub:#6b6b6b; --accent:#2f8f5b; --wait:#d08a1e; --line:#e3e0d8; }
-    * { box-sizing:border-box; }
+    :root { --bg:#f3f6f1; --card:#fff; --ink:#1f2a24; --sub:#6b746e; --accent:#2f8f5b; --accent2:#7cc49a;
+      --soft:#e6f4ec; --wait:#e08a12; --waitsoft:#fff3df; --line:#e2e7e2; --hero1:#3aa56c; --hero2:#8fd3a8; }
+    body.kid-daughter { --bg:#f4f3fb; --accent:#6a5acd; --accent2:#a99ef0; --soft:#eeebfc; --hero1:#6a5acd; --hero2:#b6a9f5; }
+    body.parent { --bg:#f5f4f0; --hero1:#3d4a5c; --hero2:#7a8aa3; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     body { margin:0; background:var(--bg); color:var(--ink);
-      font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; }
-    .wrap { max-width:480px; margin:0 auto; padding:20px 16px 40px; }
+      font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif; }
+    .wrap { max-width:480px; margin:0 auto; padding:16px 16px 48px; }
     h1 { font-size:22px; margin:0 0 4px; }
     h2 { font-size:18px; margin:24px 0 10px; }
     .date { color:var(--sub); margin-bottom:16px; }
-    .points { display:flex; gap:10px; margin-bottom:18px; }
-    .pt { flex:1; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; text-align:center; }
-    .pt b { display:block; font-size:24px; color:var(--accent); }
+
+    .hero { position:relative; overflow:hidden; color:#fff; border-radius:24px; padding:20px 18px 18px; margin-bottom:14px;
+      background:linear-gradient(135deg, var(--hero1), var(--hero2)); box-shadow:0 8px 20px -10px var(--hero1); }
+    .hero h1 { font-size:24px; margin:2px 0; }
+    .hero .hello { font-size:15px; opacity:.9; }
+    .hero h1, .hero .hello { padding-right:64px; position:relative; }
+    .hero .when { font-size:14px; opacity:.85; }
+    .hero .mascot { position:absolute; right:14px; top:10px; font-size:58px; transform:rotate(-8deg); }
+    .hero .bubble { position:absolute; right:-30px; bottom:-40px; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.15); }
+    .prog { margin-top:16px; position:relative; }
+    .prog-l { display:flex; justify-content:space-between; font-size:14px; font-weight:600; margin-bottom:6px; }
+    .bar { height:12px; border-radius:99px; background:rgba(255,255,255,.3); overflow:hidden; }
+    .bar i { display:block; height:100%; border-radius:99px; background:#fff; transition:width .5s; }
+
+    .points { display:flex; gap:10px; margin-bottom:16px; }
+    .pt { flex:1; background:var(--card); border-radius:18px; padding:12px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .pt b { display:block; font-size:26px; color:var(--accent); }
     .pt span { font-size:13px; color:var(--sub); }
-    .m { display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:var(--card);
-      border:2px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; font:inherit; color:inherit; }
-    .m.pending { border-color:var(--wait); background:#fbf3e4; }
-    .m.approved { border-color:var(--accent); background:#eaf6ef; }
-    .box { flex:none; width:36px; height:36px; border-radius:10px; border:2px solid var(--line);
-      display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; }
-    .m.pending .box { background:var(--wait); border-color:var(--wait); }
+
+    .tabs { display:flex; gap:6px; margin-bottom:16px; background:var(--card); padding:5px; border-radius:16px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .tab { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:12px; border:0; background:transparent; color:var(--sub); }
+    .tab.on { background:var(--accent); color:#fff; font-weight:600; }
+
+    .sec { font-size:14px; font-weight:700; color:var(--sub); margin:18px 4px 8px; }
+    .m { display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:var(--card);
+      border:2px solid transparent; border-radius:20px; padding:14px; margin-bottom:10px; font:inherit; color:inherit;
+      box-shadow:0 2px 10px rgba(0,0,0,.06); transition:transform .1s; }
+    .m:active { transform:scale(.98); }
+    .m.pending { border-color:var(--wait); background:var(--waitsoft); }
+    .m.approved { border-color:var(--accent); background:var(--soft); }
+    .ico { flex:none; width:46px; height:46px; border-radius:14px; background:var(--soft); display:flex; align-items:center; justify-content:center; font-size:26px; }
+    .m.pending .ico { background:#fff; }
+    .m.approved .ico { background:#fff; }
+    .box { flex:none; width:34px; height:34px; border-radius:50%; border:2.5px solid var(--line);
+      display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#fff; }
+    .m.pending .box { background:var(--wait); border-color:var(--wait); animation:pop .3s; }
     .m.approved .box { background:var(--accent); border-color:var(--accent); }
-    .t { font-size:18px; font-weight:600; }
-    .d { font-size:14px; color:var(--sub); margin-top:4px; }
-    .tag { font-size:13px; font-weight:600; margin-top:6px; }
-    .pending .tag { color:var(--wait); }
-    .approved .tag { color:var(--accent); }
-    .p { margin-left:auto; flex:none; font-size:14px; color:var(--accent); font-weight:600; }
-    .pick { display:block; width:100%; padding:22px; margin-bottom:12px; font:inherit; font-size:20px;
-      background:var(--card); border:2px solid var(--line); border-radius:16px; }
-    .rest { background:var(--card); border-radius:16px; padding:24px; text-align:center; color:var(--sub); }
-    .msg { text-align:center; color:var(--sub); padding:30px 0; }
+    @keyframes pop { 0% { transform:scale(.4); } 70% { transform:scale(1.2); } 100% { transform:scale(1); } }
+    .body { flex:1; min-width:0; }
+    .t { font-size:17px; font-weight:700; }
+    .d { font-size:13px; color:var(--sub); margin-top:3px; }
+    .tag { display:inline-block; font-size:12px; font-weight:700; margin-top:6px; padding:3px 8px; border-radius:99px; }
+    .pending .tag { color:#fff; background:var(--wait); }
+    .approved .tag { color:#fff; background:var(--accent); }
+    .p { flex:none; font-size:14px; font-weight:800; color:var(--accent); background:var(--soft); padding:6px 10px; border-radius:99px; }
+    .m.approved .p, .m.pending .p { background:#fff; }
+    .badge { display:inline-block; font-size:11px; font-weight:700; padding:2px 7px; border-radius:99px; margin-left:6px; vertical-align:2px;
+      background:#fff1c9; color:#9a6a00; }
+
+    .pick { display:block; width:100%; padding:22px; margin-bottom:12px; font:inherit; font-size:20px; font-weight:700;
+      background:var(--card); border:0; border-radius:20px; box-shadow:0 2px 10px rgba(0,0,0,.06); }
+    .rest { background:var(--card); border-radius:20px; padding:28px; text-align:center; color:var(--sub); font-size:16px; }
+    .rest .big { font-size:48px; margin-bottom:8px; }
+    .msg { text-align:center; color:var(--sub); padding:40px 0; }
+    .msg .big { font-size:40px; display:block; margin-bottom:8px; animation:bob 1s infinite alternate; }
+    @keyframes bob { to { transform:translateY(-6px); } }
+    .hint { background:var(--waitsoft); color:#8a5a00; border-radius:14px; padding:10px 12px; font-size:14px; margin-bottom:12px; }
+
+    .cheer { background:var(--card); border:2px solid var(--accent); border-radius:20px; padding:16px; margin-bottom:14px; font-size:16px; line-height:1.6;
+      box-shadow:0 6px 16px -10px var(--accent); animation:pop .4s; }
+    .cheer-t { font-size:20px; font-weight:800; color:var(--accent); margin-bottom:6px; }
+    .cheer b { color:var(--accent); }
+    .cheer-s { margin-top:6px; font-weight:700; }
+    .bonus { display:flex; align-items:center; gap:12px; background:linear-gradient(135deg,#fff7d6,#ffe9a8); border-radius:20px; padding:14px; margin-bottom:10px; font-size:15px; }
+    .bonus .ico { background:#fff; }
+    .bonus b { color:#9a6a00; }
+
     .row { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line);
-      border-radius:12px; padding:12px; margin-bottom:8px; }
+      border-radius:14px; padding:12px; margin-bottom:8px; }
     .row .info { flex:1; }
     .row .info small { display:block; color:var(--sub); }
     .btn { font:inherit; font-size:14px; padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:#fff; }
     .btn.ok { background:var(--accent); border-color:var(--accent); color:#fff; }
     .done-mark { color:var(--accent); font-weight:600; font-size:14px; }
     .wait-mark { color:var(--sub); font-size:14px; }
-    .row.pending { border-color:var(--wait); background:#fbf3e4; }
-    .row.approved { border-color:var(--accent); background:#eaf6ef; }
+    .row.pending { border-color:var(--wait); background:var(--waitsoft); }
+    .row.approved { border-color:var(--accent); background:var(--soft); }
     .erow { display:flex; align-items:center; gap:6px; padding:8px 0; border-top:1px solid var(--line); margin-top:6px; }
     .erow .info { flex:1; font-size:15px; }
     .erow .info small { display:block; color:var(--sub); font-size:13px; }
@@ -53,31 +101,26 @@
     .lbl { display:block; font-size:13px; color:var(--sub); margin:10px 0 4px; }
     .inp { width:100%; font:inherit; font-size:16px; padding:10px; border-radius:10px; border:1px solid var(--line); background:#fff; }
     .daypick { display:flex; flex-wrap:wrap; gap:10px; font-size:16px; }
-    .cheer { background:#eaf6ef; border:2px solid var(--accent); border-radius:16px; padding:16px; margin-bottom:16px; font-size:16px; line-height:1.6; }
-    .cheer-t { font-size:20px; font-weight:700; color:var(--accent); margin-bottom:6px; }
-    .cheer b { color:var(--accent); }
-    .cheer-s { margin-top:6px; font-weight:600; }
     h2 .sub { font-size:14px; font-weight:400; color:var(--sub); }
-    .tabs { display:flex; gap:6px; margin-bottom:16px; }
-    .tab { flex:1; font:inherit; font-size:15px; padding:10px 6px; border-radius:12px; border:1px solid var(--line); background:#fff; color:var(--sub); }
-    .tab.on { background:var(--ink); color:#fff; border-color:var(--ink); }
-    .day { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
-    .day.today { border:2px solid var(--accent); }
+
+    .day { background:var(--card); border-radius:18px; padding:14px 16px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,.05); border:2px solid transparent; }
+    .day.today { border-color:var(--accent); }
     .day b { font-size:17px; }
     .day .note { color:var(--sub); font-size:13px; margin-left:6px; }
+    .day .now { font-size:12px; font-weight:700; color:#fff; background:var(--accent); border-radius:99px; padding:2px 8px; margin-left:6px; vertical-align:2px; }
     .day ul, .guide ul, .guide ol { margin:6px 0 0; padding-left:20px; }
     .day li, .guide li { margin:3px 0; }
-    .guide { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
-    .guide h3 { margin:0 0 4px; font-size:17px; }
+    .guide { background:var(--card); border-radius:18px; padding:16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .guide h3 { margin:0 0 4px; font-size:17px; color:var(--accent); }
     .guide p { margin:4px 0; color:var(--sub); font-size:14px; }
-    .rules { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:12px 0; font-size:15px; }
-    .rules summary { font-weight:600; cursor:pointer; }
-    .rules ul { margin:8px 0 0; padding-left:20px; }
-    .rules li { margin:4px 0; }
+    .rules { background:var(--card); border-radius:18px; padding:14px 16px; margin:16px 0; font-size:15px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .rules summary { font-weight:700; cursor:pointer; }
+    .rules ul { margin:10px 0 0; padding-left:20px; }
+    .rules li { margin:5px 0; }
   </style>
 </head>
 <body>
-  <div class="wrap" id="app"><div class="msg">불러오는 중…</div></div>
+  <div class="wrap" id="app"><div class="msg"><span class="big">🚀</span>불러오는 중…</div></div>
   <script>
     var KID = '<?= kid ?>';
     var PARENT_KEY = '<?= parentKey ?>';
@@ -167,6 +210,7 @@
       var html = '';
       data.week.forEach(function (d) {
         html += '<div class="day' + (d.day === todayName ? ' today' : '') + '"><b>' + d.day + '요일</b>' +
+          (d.day === todayName ? '<span class="now">오늘</span>' : '') +
           (d.note ? '<span class="note">' + esc(d.note) + '</span>' : '');
         html += d.missions.length
           ? '<ul>' + d.missions.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ul>'
@@ -201,15 +245,49 @@
     }
     function choose(k) { KID = k; loadKid(); }
 
+    var THEME = {
+      son: { mascot: '🦎', hello: '안녕, 우재!' },
+      daughter: { mascot: '📚', hello: '안녕, 소율!' },
+    };
+    var ICONS = [[/연산|계산/, '🔢'], [/수학/, '📐'], [/독해|독서|책/, '📖'], [/파닉스|EBS|영어|듀오/, '🔤'],
+      [/단어/, '📝'], [/국어/, '✏️'], [/과학/, '🔬'], [/사회/, '🌏'], [/놀기|놀|끝냈/, '⚽'], [/태권/, '🥋']];
+    function iconFor(title) {
+      for (var i = 0; i < ICONS.length; i++) if (ICONS[i][0].test(title)) return ICONS[i][1];
+      return '⭐';
+    }
+
+    function heroHtml(data) {
+      var th = THEME[KID] || { mascot: '⭐', hello: '안녕!' };
+      var core = data.missions.filter(function (m) { return m.kind === '기본'; });
+      var done = core.filter(function (m) { return m.state !== 'none'; }).length;
+      var pct = core.length ? Math.round(done / core.length * 100) : 100;
+      var label = !core.length ? '오늘은 쉬는 날' : done === core.length ? '기본 미션 끝! 최고야 🎉' : '기본 미션 ' + done + ' / ' + core.length;
+      return '<div class="hero"><div class="bubble"></div><div class="mascot">' + th.mascot + '</div>' +
+        '<div class="hello">' + esc(th.hello) + '</div><h1>' + esc(data.title) + '</h1><div class="when">' + esc(data.date) + '</div>' +
+        (VIEW === 'today' && core.length ? '<div class="prog"><div class="prog-l"><span>' + label + '</span><span>' + pct + '%</span></div>' +
+          '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '') + '</div>';
+    }
+
+    function missionHtml(m) {
+      var tag = m.state === 'pending' ? '엄마 확인 기다리는 중' : m.state === 'approved' ? '엄마 확인 완료!' : '';
+      var badge = m.kind === '보너스' ? '<span class="badge">선택</span>' : m.kind === '완료보너스' ? '<span class="badge">보너스</span>' : '';
+      return '<button class="m ' + m.state + '" onclick="toggle(\'' + m.id + '\',\'' + m.state + '\')">' +
+        '<div class="ico">' + iconFor(m.title) + '</div>' +
+        '<div class="body"><div class="t">' + esc(m.title) + badge + '</div><div class="d">' + esc(m.detail) + '</div>' +
+        (tag ? '<div class="tag">' + tag + '</div>' : '') + '</div>' +
+        '<div class="p">+' + m.points + '</div><div class="box">' + (m.state !== 'none' ? '✓' : '') + '</div></button>';
+    }
+
     function renderKid(data) {
       LAST = data;
-      var head = '<h1>' + esc(data.title) + '</h1><div class="date">' + esc(data.date) + '</div>' + tabs(KID === 'daughter');
+      document.body.className = 'kid-' + KID;
+      var head = heroHtml(data) + tabs(KID === 'daughter');
       if (VIEW === 'week') { app.innerHTML = head + weekHtml(data); return; }
       if (VIEW === 'study') { app.innerHTML = head + studyHtml(); return; }
       var waiting = data.missions.filter(function (m) { return m.state === 'pending'; }).length;
       var html = head +
         '<div class="points"><div class="pt"><b>' + data.todayPoints + '</b><span>오늘 받은 포인트</span></div>' +
-        '<div class="pt"><b>' + data.monthPoints + '</b><span>이번 달' + (data.cap ? ' (최대 ' + data.cap + ')' : '') + '</span></div></div>';
+        '<div class="pt"><b>' + data.monthPoints + '</b><span>이번 달</span></div></div>';
       if (data.celebrate && data.celebrate.length) CHEER = (CHEER || []).concat(data.celebrate);
       if (CHEER) {
         var sum = CHEER.reduce(function (a, c) { return a + (c.points || 0); }, 0);
@@ -217,18 +295,14 @@
           CHEER.map(function (c) { return '<div>' + esc(c.title) + ' <b>+' + c.points + '</b></div>'; }).join('') +
           '<div class="cheer-s">모두 +' + sum + '점. 잘했어요!</div></div>';
       }
-      if (waiting) html += '<div class="date">엄마 확인을 기다리는 미션 ' + waiting + '개. 확인되면 포인트가 들어와요.</div>';
-      if (!data.missions.length) html += '<div class="rest">오늘은 쉬는 날이에요. 푹 쉬어요!</div>';
-      data.missions.forEach(function (m) {
-        var tag = m.state === 'pending' ? '엄마 확인 기다리는 중' : m.state === 'approved' ? '엄마 확인 완료!' : '';
-        html += '<button class="m ' + m.state + '" onclick="toggle(\'' + m.id + '\',\'' + m.state + '\')">' +
-          '<div class="box">' + (m.state !== 'none' ? '✓' : '') + '</div>' +
-          '<div><div class="t">' + esc(m.title) + '</div><div class="d">' + esc(m.detail) + '</div>' +
-          (tag ? '<div class="tag">' + tag + '</div>' : '') + '</div>' +
-          '<div class="p">+' + m.points + '</div></button>';
-      });
-      if (data.bonus) html += '<div class="cheer">🌟 기본 미션을 모두 해서 <b>다 했어요 보너스 +' + data.bonus + '</b></div>';
-      if (data.weekBonus) html += '<div class="cheer">🏆 이번 주 미션을 하루도 안 빼고 해서 <b>주간 보너스 +' + data.weekBonus + '</b></div>';
+      if (waiting) html += '<div class="hint">⏳ 엄마 확인을 기다리는 미션 ' + waiting + '개. 확인되면 포인트가 들어와요.</div>';
+      if (!data.missions.length) html += '<div class="rest"><div class="big">😴</div>오늘은 쉬는 날이에요. 푹 쉬어요!</div>';
+      var core = data.missions.filter(function (m) { return m.kind === '기본'; });
+      var extra = data.missions.filter(function (m) { return m.kind !== '기본'; });
+      if (core.length) html += '<div class="sec">오늘 꼭 할 미션</div>' + core.map(missionHtml).join('');
+      if (extra.length) html += '<div class="sec">더 하면 포인트 UP</div>' + extra.map(missionHtml).join('');
+      if (data.bonus) html += '<div class="bonus"><div class="ico">🌟</div><div>기본 미션을 모두 해서<br><b>다 했어요 보너스 +' + data.bonus + '</b></div></div>';
+      if (data.weekBonus) html += '<div class="bonus"><div class="ico">🏆</div><div>이번 주 하루도 안 빼고 해서<br><b>주간 보너스 +' + data.weekBonus + '</b></div></div>';
       html += rulesHtml(data.rules, '💡 포인트 받는 방법');
       app.innerHTML = html;
     }
@@ -272,7 +346,7 @@
     function pgo(v) { PVIEW = v; EDIT = null; if (v === 'edit') loadConfig(); else loadParent(); }
 
     function renderParent(data) {
-      var html = '<h1>엄마 확인</h1><div class="date">' + esc(data.date) + ' · 확인한 미션만 포인트로 들어가요</div>' + parentTabs();
+      var html = parentHero(esc(data.date) + ' · 확인한 미션만 포인트로 들어가요') + parentTabs();
       data.kids.forEach(function (k) {
         html += '<h2>' + esc(k.name) + ' <span class="sub">오늘 ' + k.todayPoints + '점 · 이번 달 ' + k.monthPoints + '점</span></h2>';
         if (!k.today.length) html += '<div class="rest">오늘은 쉬는 날이에요</div>';
@@ -288,8 +362,13 @@
       app.innerHTML = html;
     }
 
+    function parentHero(sub) {
+      document.body.className = 'parent';
+      return '<div class="hero"><div class="bubble"></div><div class="mascot">🌱</div><h1>엄마 확인</h1><div class="when">' + sub + '</div></div>';
+    }
+
     function keyScreen(msg) {
-      app.innerHTML = '<h1>엄마 확인</h1><div class="date">' + (msg || '비밀번호를 입력해 주세요') + '</div>' +
+      app.innerHTML = parentHero(msg || '비밀번호를 입력해 주세요') +
         '<input id="pw" type="password" style="width:100%;font-size:18px;padding:14px;border-radius:12px;border:1px solid var(--line);margin-bottom:12px">' +
         '<button class="pick" onclick="tryKey()">들어가기</button>';
     }
@@ -356,7 +435,7 @@
       busy = false;
       CFG = cfg;
       var kidCfg = cfg.kids.filter(function (k) { return k.kid === EKID; })[0];
-      var html = '<h1>엄마 확인</h1><div class="date">요일별 미션을 고치면 바로 아이 화면에 반영돼요</div>' + parentTabs();
+      var html = parentHero('요일별 미션을 고치면 바로 아이 화면에 반영돼요') + parentTabs();
       html += '<div class="tabs">' + cfg.kids.map(function (k) {
         return '<button class="tab' + (EKID === k.kid ? ' on' : '') + '" onclick="EKID=\'' + k.kid + '\';EDIT=null;renderConfig(CFG)">' + esc(k.name) + '</button>';
       }).join('') + '</div>';
