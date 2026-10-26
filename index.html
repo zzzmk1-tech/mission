@@ -217,6 +217,7 @@
           (tag ? '<div class="tag">' + tag + '</div>' : '') + '</div>' +
           '<div class="p">+' + m.points + '</div></button>';
       });
+      if (data.bonus) html += '<div class="cheer">🌟 기본 미션을 모두 해서 <b>다 했어요 보너스 +' + data.bonus + '</b></div>';
       app.innerHTML = html;
     }
 
@@ -264,6 +265,7 @@
         html += '<h2>' + esc(k.name) + ' <span class="sub">오늘 ' + k.todayPoints + '점 · 이번 달 ' + k.monthPoints + '점</span></h2>';
         if (!k.today.length) html += '<div class="rest">오늘은 쉬는 날이에요</div>';
         k.today.forEach(function (it) { html += parentRow(k.kid, it, false); });
+        if (k.bonus) html += '<div class="row approved"><div class="info">다 했어요 보너스<small>기본 미션을 모두 확인해서 자동으로 들어가요</small></div><span class="done-mark">+' + k.bonus + '</span></div>';
         if (k.past.length) {
           html += '<div class="date" style="margin-top:10px">지난 미션 중 확인 안 한 것</div>';
           k.past.forEach(function (it) { html += parentRow(k.kid, it, true); });
