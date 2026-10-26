@@ -70,6 +70,10 @@
     .guide { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
     .guide h3 { margin:0 0 4px; font-size:17px; }
     .guide p { margin:4px 0; color:var(--sub); font-size:14px; }
+    .rules { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:12px 0; font-size:15px; }
+    .rules summary { font-weight:600; cursor:pointer; }
+    .rules ul { margin:8px 0 0; padding-left:20px; }
+    .rules li { margin:4px 0; }
   </style>
 </head>
 <body>
@@ -180,6 +184,12 @@
       }).join('');
     }
 
+    function rulesHtml(rules, title) {
+      if (!rules || !rules.length) return '';
+      return '<details class="rules"><summary>' + esc(title) + '</summary><ul>' +
+        rules.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></details>';
+    }
+
     function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
     function fail(err) { busy = false; app.innerHTML = '<div class="msg">문제가 생겼어요. 다시 열어주세요.<br>' + esc(err.message || err) + '</div>'; }
 
@@ -218,6 +228,8 @@
           '<div class="p">+' + m.points + '</div></button>';
       });
       if (data.bonus) html += '<div class="cheer">🌟 기본 미션을 모두 해서 <b>다 했어요 보너스 +' + data.bonus + '</b></div>';
+      if (data.weekBonus) html += '<div class="cheer">🏆 이번 주 미션을 하루도 안 빼고 해서 <b>주간 보너스 +' + data.weekBonus + '</b></div>';
+      html += rulesHtml(data.rules, '💡 포인트 받는 방법');
       app.innerHTML = html;
     }
 
@@ -266,6 +278,8 @@
         if (!k.today.length) html += '<div class="rest">오늘은 쉬는 날이에요</div>';
         k.today.forEach(function (it) { html += parentRow(k.kid, it, false); });
         if (k.bonus) html += '<div class="row approved"><div class="info">다 했어요 보너스<small>기본 미션을 모두 확인해서 자동으로 들어가요</small></div><span class="done-mark">+' + k.bonus + '</span></div>';
+        if (k.weekBonus) html += '<div class="row approved"><div class="info">주간 보너스<small>이번 주 기본 미션을 하루도 안 빼고 해서 자동으로 들어가요</small></div><span class="done-mark">+' + k.weekBonus + '</span></div>';
+        html += rulesHtml(k.rules, k.name + ' 포인트 규칙');
         if (k.past.length) {
           html += '<div class="date" style="margin-top:10px">지난 미션 중 확인 안 한 것</div>';
           k.past.forEach(function (it) { html += parentRow(k.kid, it, true); });
