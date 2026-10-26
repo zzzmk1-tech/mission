@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.0.2
+// @version      1.0.3
 // @description  체크 앱에서 엄마가 확인한 미션 포인트를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
@@ -100,7 +100,8 @@
   function click(el) {
     const t = clickable(el);
     ['pointerdown', 'mousedown', 'pointerup', 'mouseup'].forEach(function (type) {
-      t.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+      // view는 넣지 않아요 (Firefox 확장 프로그램의 window는 화면의 window와 달라서 오류가 나요)
+      try { t.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true })); } catch (e) {}
     });
     t.click();
   }
