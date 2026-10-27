@@ -158,6 +158,7 @@
     .rules summary { font-weight:700; cursor:pointer; }
     .rules ul { margin:10px 0 0; padding-left:20px; }
     .rules li { margin:5px 0; }
+    .toast { position:fixed; left:16px; right:16px; bottom:20px; background:#333; color:#fff; border-radius:12px; padding:12px 14px; font-size:14px; text-align:center; z-index:99; }
   </style>
 </head>
 <body>
@@ -386,16 +387,57 @@
       app.innerHTML = html;
     }
 
+    // 빠르게 보이도록: 오늘 받은 화면을 폰에 저장해 두고, 열 때 먼저 보여준 뒤 새로 받아와요
+    function localDay() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+    function saveKid(data) {
+      try { localStorage.setItem('today_' + KID, JSON.stringify({ day: localDay(), data: Object.assign({}, data, { celebrate: [] }) })); } catch (e) {}
+    }
+    function cachedKid() {
+      try {
+        var c = JSON.parse(localStorage.getItem('today_' + KID) || 'null');
+        return c && c.day === localDay() ? c.data : null;
+      } catch (e) { return null; }
+    }
+    function gotKid(data) { saveKid(data); if (!INFLIGHT.length) renderKid(data); }
+
     function loadKid() {
       if (!KID) return pickScreen();
-      google.script.run.withSuccessHandler(renderKid).withFailureHandler(fail).getToday(KID);
+      var c = cachedKid();
+      if (c) renderKid(c);
+      google.script.run.withSuccessHandler(gotKid).withFailureHandler(c ? function () {} : fail).getToday(KID);
     }
 
+    var INFLIGHT = [], KSEQ = 0;
+    function nowHM() { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+    function toast(msg) {
+      var t = document.createElement('div');
+      t.className = 'toast'; t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(function () { t.remove(); }, 3000);
+    }
+
+    // 누르면 화면부터 바로 바꾸고, 저장은 뒤에서 해요
     function toggle(id, state) {
-      if (busy || state === 'approved' || state === 'other') return;
-      busy = true;
-      google.script.run.withSuccessHandler(function (d) { busy = false; renderKid(d); })
-        .withFailureHandler(fail).toggleMission(KID, id);
+      if (state === 'approved' || state === 'other' || INFLIGHT.indexOf(id) >= 0 || !LAST) return;
+      LAST.missions.forEach(function (m) {
+        if (m.id !== id) return;
+        m.state = m.state === 'none' ? 'pending' : 'none';
+        m.checkedAt = m.state === 'pending' ? nowHM() : '';
+      });
+      INFLIGHT.push(id);
+      renderKid(LAST);
+      var seq = ++KSEQ;
+      var done = function () { INFLIGHT = INFLIGHT.filter(function (x) { return x !== id; }); };
+      google.script.run.withSuccessHandler(function (d) {
+          done();
+          if (INFLIGHT.length) return;
+          if (seq === KSEQ) gotKid(d); else google.script.run.withSuccessHandler(gotKid).withFailureHandler(function () {}).getToday(KID);
+        })
+        .withFailureHandler(function (e) {
+          done();
+          toast('저장이 안 됐어요. 다시 눌러 주세요' + (e && e.message ? ' (' + e.message + ')' : ''));
+          google.script.run.withSuccessHandler(gotKid).withFailureHandler(fail).getToday(KID);
+        }).toggleMission(KID, id);
     }
 
     // ----- 엄마 화면 -----
@@ -461,7 +503,9 @@
       app.innerHTML = html;
     }
 
+    var PLAST = null;
     function renderParent(data) {
+      PLAST = data;
       var html = parentHero(esc(data.date) + ' · 확인한 미션만 포인트로 들어가요') + parentTabs();
       data.kids.forEach(function (k) {
         html += '<h2>' + esc(k.name) + ' <span class="sub">오늘 ' + k.todayPoints + '점 · 이번 달 ' + k.monthPoints + '점</span></h2>';
@@ -505,13 +549,32 @@
       }).getParentView(PARENT_KEY);
     }
 
+    // 엄마도 누르면 화면부터 바로 바뀌어요. 여러 개를 연달아 눌러도 돼요
+    var PIN = [], PSEQ = 0;
     function act(kid, date, mission, action) {
-      if (busy) return;
+      var key = kid + '|' + date + '|' + mission;
+      if (PIN.indexOf(key) >= 0 || !PLAST) return;
       if (action === 'reject' && !confirm('아이의 체크를 지울까요?')) return;
       if (action === 'unapprove' && !confirm('확인을 취소할까요? 포인트에서 빠져요.')) return;
-      busy = true;
-      google.script.run.withSuccessHandler(function (d) { busy = false; renderParent(d); })
-        .withFailureHandler(fail).parentAction(PARENT_KEY, kid, date, mission, action);
+      var next = { approve: 'approved', reject: 'none', unapprove: 'pending' }[action];
+      PLAST.kids.forEach(function (k) {
+        if (k.kid !== kid) return;
+        k.today.forEach(function (it) { if (it.date === date && it.mission === mission) { it.state = next; if (next === 'none') it.checkedAt = ''; } });
+        k.past = k.past.filter(function (it) { return !(it.date === date && it.mission === mission); });
+      });
+      renderParent(PLAST);
+      PIN.push(key);
+      var seq = ++PSEQ;
+      var done = function () { PIN = PIN.filter(function (x) { return x !== key; }); };
+      google.script.run.withSuccessHandler(function (d) {
+        done();
+        if (PIN.length || PVIEW !== 'check') return;
+        if (seq === PSEQ) renderParent(d); else loadParent();
+      }).withFailureHandler(function () {
+        done();
+        toast('저장이 안 됐어요. 다시 해 주세요');
+        if (PVIEW === 'check') loadParent();
+      }).parentAction(PARENT_KEY, kid, date, mission, action);
     }
 
 
