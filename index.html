@@ -346,7 +346,7 @@
     function missionHtml(m) {
       var tag = m.otherDay ? m.otherDay + '요일에 했어요' : m.state === 'pending' ? '엄마 확인 기다리는 중' : m.state === 'approved' ? '엄마 확인 완료!' : '';
       var badge = m.kind === '보너스' ? '<span class="badge">선택</span>' : m.kind === '완료보너스' ? '<span class="badge">보너스</span>' : '';
-      var st = m.otherDay ? 'other' : m.state;
+      var st = m.otherDay ? 'other' : m.locked ? 'approved' : m.state;
       return '<button class="m ' + m.state + '" onclick="toggle(\'' + m.id + '\',\'' + st + '\')">' +
         '<div class="ico">' + iconFor(m.title) + '</div>' +
         '<div class="body"><div class="t">' + esc(m.title) + badge + '</div><div class="d">' + esc(m.detail) + '</div>' +
