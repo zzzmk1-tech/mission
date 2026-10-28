@@ -444,7 +444,9 @@
     function parentRow(kid, it, showDate) {
       var args = "'" + kid + "','" + it.date + "','" + it.mission + "'";
       var btns;
-      if (it.state === 'approved') {
+      if (it.state === 'approved' && it.paid) {
+        btns = '<span class="done-mark">지급 완료</span>';
+      } else if (it.state === 'approved') {
         btns = '<span class="done-mark">확인 완료</span>' +
           '<button class="btn" onclick="act(' + args + ',\'unapprove\')">확인 취소</button>';
       } else if (it.state === 'pending') {
