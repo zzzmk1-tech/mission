@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.1.0
+// @version      1.2.0
 // @description  체크 앱에서 엄마가 확인한 미션 포인트를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
@@ -375,6 +375,8 @@
     try { btn.scrollIntoView({ block: 'center' }); } catch (e) {}
     await sleep(300);
     const token = kid.kid + '-' + Date.now();
+    // 지급 버튼을 누르기 전에 저장해 둬요. 화면이 새로 고쳐져 기록을 못 보내도 다음에 열 때 물어봐요
+    await setStored('pending', JSON.stringify({ kid: kid.kid, cmName: kid.cmName, amount: kid.amount, memo: kid.memo, token: token, at: Date.now() }));
     click(btn);
     await confirmDialogIfAny();
 
@@ -386,9 +388,36 @@
       done = window.confirm('칭찬모아에서 ' + kid.cmName + ' ' + kid.amount + '점 지급이 완료됐나요?\n' +
         '완료됐으면 "확인", 아니면 "취소"를 눌러주세요. (확인을 누르면 체크 앱에 지급 완료로 기록돼요)');
     }
-    if (!done) return false;
-    await api({ api: 'paid', kid: kid.kid, amount: kid.amount, memo: kid.memo, token: token });
+    if (!done) { await setStored('pending', ''); return false; }
+    await recordPaid({ kid: kid.kid, amount: kid.amount, memo: kid.memo, token: token });
     return true;
+  }
+
+  // 체크 앱에 '지급 완료'를 기록해요. 인터넷이 잠깐 끊겨도 몇 번 다시 해 봐요 (같은 토큰은 한 번만 기록돼요)
+  async function recordPaid(p) {
+    let last;
+    for (let i = 0; i < 3; i++) {
+      try {
+        await api({ api: 'paid', kid: p.kid, amount: p.amount, memo: p.memo, token: p.token });
+        await setStored('pending', '');
+        return;
+      } catch (e) { last = e; await sleep(1500 * (i + 1)); }
+    }
+    throw new Error('칭찬모아 지급은 됐지만 체크 앱에 기록하지 못했어요(' + last.message + '). 버튼을 다시 누르면 기록부터 할게요');
+  }
+
+  // 지난번 지급이 기록되기 전에 멈췄으면, 칭찬모아 지급 내역을 보고 맞는지 물어봐요
+  async function resolvePending() {
+    let p = null;
+    try { p = JSON.parse((await getStored('pending')) || 'null'); } catch (e) {}
+    if (!p || !p.token) return;
+    const when = new Date(p.at);
+    const t = (when.getMonth() + 1) + '/' + when.getDate() + ' ' + when.getHours() + ':' + ('0' + when.getMinutes()).slice(-2);
+    const yes = window.confirm('지난번(' + t + ') ' + p.cmName + ' ' + p.amount + '점 지급이 체크 앱에 기록되지 않았어요.\n' +
+      '내용: ' + p.memo + '\n\n칭찬모아 지급 내역에 이 지급이 있으면 "확인", 없으면 "취소"를 눌러주세요.\n' +
+      '(확인을 누르면 체크 앱에 지급 완료로 기록해서, 같은 포인트가 또 나오지 않아요)');
+    if (yes) await recordPaid(p);
+    else await setStored('pending', '');
   }
 
   // ---------- 버튼 ----------
@@ -409,6 +438,7 @@
         if (!k) return;
         await setStored('key', k.trim());
       }
+      await resolvePending();
       status('체크 앱에서 포인트 가져오는 중');
       let list;
       try {
@@ -454,6 +484,12 @@
         'box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;max-width:calc(100vw - 32px)';
       b.addEventListener('click', run);
       document.body.appendChild(b);
+      // 지급 중에 화면이 새로 고쳐졌으면 바로 물어봐요
+      setTimeout(async function () {
+        if (running) return;
+        running = true;
+        try { await resolvePending(); } catch (e) { window.alert(e.message); } finally { running = false; }
+      }, 1500);
     }
     if (b) b.style.display = show || running ? '' : 'none';
   }

@@ -190,7 +190,8 @@
         withFailureHandler: function (f) { bad = f; return r; },
       };
       ['getToday', 'toggleMission', 'getParentView', 'parentAction',
-       'getMissionConfig', 'addMission', 'updateMission', 'deleteMission', 'getCalendar', 'getWeekReport'].forEach(function (fn) {
+       'getMissionConfig', 'addMission', 'updateMission', 'deleteMission', 'getCalendar', 'getWeekReport',
+       'getPastDay', 'addPastMission', 'removePastMission'].forEach(function (fn) {
         r[fn] = function () {
           var args = Array.prototype.slice.call(arguments);
           var url = API_URL + '?api=call&fn=' + fn + '&args=' + encodeURIComponent(JSON.stringify(args)) + '&t=' + Date.now();
@@ -470,7 +471,7 @@
         return '<button class="tab' + (PVIEW === x[0] ? ' on' : '') + '" onclick="pgo(\'' + x[0] + '\')">' + x[1] + '</button>';
       }).join('') + '</div>';
     }
-    function pgo(v) { PVIEW = v; EDIT = null; if (v === 'edit') loadConfig(); else if (v === 'report') loadReport(); else loadParent(); }
+    function pgo(v) { PVIEW = v; EDIT = null; PAST = null; if (v === 'edit') loadConfig(); else if (v === 'report') loadReport(); else loadParent(); }
 
     // ----- 엄마: 이번 주 -----
     function loadReport() {
@@ -520,9 +521,73 @@
           html += '<div class="date" style="margin-top:10px">지난 미션 중 확인 안 한 것</div>';
           k.past.forEach(function (it) { html += parentRow(k.kid, it, true); });
         }
+        html += pastBox(k);
         html += rulesHtml(k.rules, k.name + ' 포인트 규칙');
       });
       app.innerHTML = html;
+    }
+
+    // ----- 엄마: 지난 미션 넣기 (아이가 체크를 못 하고 지나간 날) -----
+    var PAST = null; // { kid, date, data, busy }
+    function pastDates(today) {
+      var p = today.split('-').map(Number), out = [];
+      for (var i = 1; i <= 7; i++) {
+        var d = new Date(p[0], p[1] - 1, p[2] - i, 12);
+        var ds = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+        out.push({ ds: ds, label: (d.getMonth() + 1) + '/' + d.getDate() + ' (' + DAYS[d.getDay()] + ')' + (i === 1 ? ' 어제' : '') });
+      }
+      return out;
+    }
+    function pastBox(k) {
+      if (!PAST || PAST.kid !== k.kid) {
+        return '<button class="btn add" onclick="pastOpen(\'' + k.kid + '\')">+ 지난 미션 넣기 (체크를 못 하고 지나간 날)</button>';
+      }
+      var html = '<div class="guide"><h3>' + esc(k.name) + ' 지난 미션 넣기</h3>' +
+        '<p>아이가 했는데 체크를 못 한 미션만 넣어 주세요. 넣으면 바로 엄마 확인으로 들어가요.</p>' +
+        '<select class="inp" onchange="pastPick(this.value)">' + pastDates(PLAST.today).map(function (x) {
+          return '<option value="' + x.ds + '"' + (x.ds === PAST.date ? ' selected' : '') + '>' + esc(x.label) + '</option>';
+        }).join('') + '</select>';
+      if (!PAST.data) {
+        html += '<div class="rest">불러오는 중…</div>';
+      } else if (!PAST.data.items.length) {
+        html += '<div class="rest">그날은 미션이 없는 날이에요</div>';
+      } else {
+        PAST.data.items.forEach(function (it) {
+          var a = "'" + it.mission + "'", btn;
+          if (PAST.busy) btn = '<span class="wait-mark">저장 중…</span>';
+          else if (it.state === 'approved' && it.paid) btn = '<span class="done-mark">지급 완료</span>';
+          else if (it.state === 'approved') btn = '<span class="done-mark">확인 완료</span><button class="btn" onclick="pastDo(' + a + ',\'remove\')">빼기</button>';
+          else if (it.state === 'pending') btn = '<button class="btn ok" onclick="pastDo(' + a + ',\'add\')">확인</button>';
+          else if (it.state === 'other') btn = '<span class="wait-mark">' + esc(it.otherDay) + '요일에 함</span>';
+          else btn = '<button class="btn ok" onclick="pastDo(' + a + ',\'add\')">넣기</button>';
+          var sub = (it.kind !== '기본' ? it.kind + ' · ' : '') + it.points + '점';
+          html += '<div class="row ' + it.state + '"><div class="info">' + esc(it.title) + '<small>' + esc(sub) + '</small></div>' + btn + '</div>';
+        });
+      }
+      html += '<button class="btn" style="width:100%;margin-top:10px" onclick="pastClose()">닫기</button></div>';
+      return html;
+    }
+    function pastOpen(kid) { PAST = { kid: kid, date: pastDates(PLAST.today)[0].ds, data: null }; renderParent(PLAST); pastLoad(); }
+    function pastPick(ds) { PAST.date = ds; PAST.data = null; renderParent(PLAST); pastLoad(); }
+    function pastClose() { PAST = null; loadParent(); }
+    function pastLoad() {
+      var want = PAST;
+      google.script.run.withSuccessHandler(function (d) {
+        if (PAST !== want || d.date !== PAST.date) return;
+        PAST.data = d; renderParent(PLAST);
+      }).withFailureHandler(function (e) { toast(e.message || '불러오지 못했어요'); pastClose(); })
+        .getPastDay(PARENT_KEY, PAST.kid, PAST.date);
+    }
+    function pastDo(mission, what) {
+      if (!PAST || PAST.busy) return;
+      if (what === 'remove' && !confirm('넣은 미션을 뺄까요? 포인트에서 빠져요.')) return;
+      var want = PAST;
+      PAST.busy = true; renderParent(PLAST);
+      var ok = function (d) { if (PAST !== want) return; PAST.busy = false; PAST.data = d; toast(what === 'add' ? '넣었어요' : '뺐어요'); renderParent(PLAST); };
+      var bad = function (e) { if (PAST !== want) return; PAST.busy = false; toast(e.message || '저장이 안 됐어요'); renderParent(PLAST); };
+      var r = google.script.run.withSuccessHandler(ok).withFailureHandler(bad);
+      if (what === 'add') r.addPastMission(PARENT_KEY, PAST.kid, PAST.date, mission);
+      else r.removePastMission(PARENT_KEY, PAST.kid, PAST.date, mission);
     }
 
     function parentHero(sub) {
