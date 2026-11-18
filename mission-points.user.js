@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.2.0
-// @description  체크 앱에서 엄마가 확인한 미션 포인트를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
+// @version      1.3.0
+// @description  가족 보드에서 엄마가 확인한 미션 포인트(미지급 포인트)를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM.xmlHttpRequest
@@ -20,8 +20,8 @@
 (function () {
   'use strict';
 
-  // 체크 앱(구글 Apps Script) 웹앱 주소
-  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwuSrzkEBAv1Bnr74_DulKxS5ylLN3Fbe78PHnMBbjxef680qhcidPUZewQSylVHoD5pw/exec';
+  // 가족 보드 서버(구글 Apps Script) 주소. 1.2.0까지는 예전 '오늘의 미션' 체크 앱 주소였어요.
+  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwNP3bk9YLI86q8HtRfFpn1HHiZWyTAnVPNQ94k4z__aLyuaKG3AborlKzNdfRmUYB6/exec';
 
   // ---------- 저장 / 통신 ----------
 
@@ -434,7 +434,7 @@
     running = true;
     try {
       if (!(await getStored('key'))) {
-        const k = window.prompt('체크 앱 엄마 비밀번호(PARENT_KEY)를 입력해 주세요. 처음 한 번만 물어봐요.');
+        const k = window.prompt('가족 보드 엄마 비밀번호를 입력해 주세요. 처음 한 번만 물어봐요.\n(가족 보드 → 미션 확인 → 칭찬모아 탭에 있어요)');
         if (!k) return;
         await setStored('key', k.trim());
       }
@@ -494,5 +494,42 @@
     if (b) b.style.display = show || running ? '' : 'none';
   }
 
-  setInterval(ensureButton, 1000);
+  // ---------- 가족 보드의 "칭찬모아 열기"로 왔을 때: 포인트 지급하기 화면까지 찾아가기 ----------
+  // 가족 보드는 버전 번호가 없는 주소(https://mcorp.chingchanmoa.com/#familyboard)로 열어요.
+  // 칭찬모아 주소의 버전(point_v_99 …)이 바뀌어도 메뉴에서 '포인트 지급'을 찾아 들어가요.
+  const GO_MINUTES = 5;
+  let goTried = false;
+
+  async function goToPayPage() {
+    if (/familyboard/.test(location.hash)) {
+      await setStored('goPay', String(Date.now()));
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    }
+    if (onPayPage()) {
+      // 지급 화면 주소를 기억해 둬요 (메뉴를 못 찾을 때 씀)
+      await setStored('payUrl', location.origin + location.pathname + location.search);
+      await setStored('goPay', '');
+      return;
+    }
+    if (goTried) return;
+    const at = Number(await getStored('goPay')) || 0;
+    if (!at || Date.now() - at > GO_MINUTES * 60000) return;
+    if (/login/i.test(location.pathname) || document.querySelector('input[type="password"]')) return;   // 로그인한 다음에
+    // 메뉴에서 '포인트 지급'이 들어간 링크 (회수·내역·충전은 빼고)
+    const link = Array.prototype.filter.call(document.querySelectorAll('a[href]'), function (a) {
+      const t = norm(a.textContent);
+      return /포인트\s*지급/.test(t) && !/회수|내역|충전|조회/.test(t) && a.getAttribute('href') !== '#';
+    })[0];
+    const saved = await getStored('payUrl');
+    if (!link && !saved) return;   // 화면이 다 그려지면 다시 해 봐요
+    goTried = true;
+    await setStored('goPay', '');
+    if (link) click(link);
+    else location.href = saved;
+  }
+
+  setInterval(function () {
+    ensureButton();
+    goToPayPage().catch(function () {});
+  }, 1000);
 })();
