@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         칭찬모아 미션 포인트 지급
 // @namespace    kids-study
-// @version      1.3.0
+// @version      1.3.1
 // @description  가족 보드에서 엄마가 확인한 미션 포인트(미지급 포인트)를 칭찬모아 "포인트 지급하기" 화면에서 직접입력으로 지급해요.
 // @match        https://*.chingchanmoa.com/*
 // @grant        GM_xmlhttpRequest
@@ -496,14 +496,16 @@
 
   // ---------- 가족 보드의 "칭찬모아 열기"로 왔을 때: 포인트 지급하기 화면까지 찾아가기 ----------
   // 가족 보드는 버전 번호가 없는 주소(https://mcorp.chingchanmoa.com/#familyboard)로 열어요.
+  // 안드로이드에서는 Firefox로 넘겨 주며 ?familyboard=1 도 붙여요 (둘 중 하나만 보여도 알아봐요).
   // 칭찬모아 주소의 버전(point_v_99 …)이 바뀌어도 메뉴에서 '포인트 지급'을 찾아 들어가요.
   const GO_MINUTES = 5;
   let goTried = false;
 
   async function goToPayPage() {
-    if (/familyboard/.test(location.hash)) {
+    const q = location.search.replace(/([?&])familyboard(=[^&]*)?(&|$)/, function (m, a, b, c) { return c ? a : ''; });
+    if (/familyboard/.test(location.hash) || q !== location.search) {
       await setStored('goPay', String(Date.now()));
-      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      try { history.replaceState(null, '', location.pathname + q); } catch (e) {}
     }
     if (onPayPage()) {
       // 지급 화면 주소를 기억해 둬요 (메뉴를 못 찾을 때 씀)
